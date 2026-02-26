@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
+import { useAuthStore } from "@/stores/auth";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -36,6 +38,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useVoiceStore } from "@/stores/voice";
+import { ScreenShareModal, type ScreenShareOptions } from "./ScreenShareModal";
 
 interface MediaRoomProps {
   channelId: string;
@@ -103,9 +106,20 @@ export function MediaRoom({
         connect={true}
         video={channelType === "video"}
         audio={true}
-        onDisconnected={onDisconnect}
+        onDisconnected={() => {
+          const userId = useAuthStore.getState().user?.id;
+          if (userId) {
+            getSocket()?.emit("voice:leave", { channelId, userId });
+          }
+          useVoiceStore.getState().leaveChannel();
+          onDisconnect();
+        }}
         onConnected={() => {
           useVoiceStore.getState().joinChannel(channelId);
+          const userId = useAuthStore.getState().user?.id;
+          if (userId) {
+            getSocket()?.emit("voice:join", { channelId, userId });
+          }
         }}
         style={{ height: "100%", display: "flex", flexDirection: "column" }}
       >
@@ -166,6 +180,7 @@ function RoomContent({
   const [isCamOn, setIsCamOn] = useState(channelType === "video");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showScreenShareModal, setShowScreenShareModal] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Ekran paylaşımı varsa otomatik odakla
@@ -210,10 +225,28 @@ function RoomContent({
     setIsCamOn(!isCamOn);
   };
 
-  const toggleScreenShare = async () => {
+  const toggleScreenShare = () => {
+    if (isScreenSharing) {
+      localParticipant.setScreenShareEnabled(false);
+      setIsScreenSharing(false);
+    } else {
+      setShowScreenShareModal(true);
+    }
+  };
+
+  const startScreenShare = async (options: ScreenShareOptions) => {
+    setShowScreenShareModal(false);
     try {
-      await localParticipant.setScreenShareEnabled(!isScreenSharing);
-      setIsScreenSharing(!isScreenSharing);
+      const isSource = options.resolution.width === 0;
+      await localParticipant.setScreenShareEnabled(true, {
+        resolution: isSource ? undefined : {
+          width: options.resolution.width,
+          height: options.resolution.height,
+          frameRate: options.frameRate,
+        },
+        contentHint: "detail",
+      });
+      setIsScreenSharing(true);
     } catch {
       // Kullanıcı iptal etti
     }
@@ -238,6 +271,14 @@ function RoomContent({
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Ekran paylaşımı kalite modal */}
+      {showScreenShareModal && (
+        <ScreenShareModal
+          onStart={startScreenShare}
+          onCancel={() => setShowScreenShareModal(false)}
+        />
+      )}
+
       {/* Başlık */}
       <div className="flex h-12 items-center justify-between border-b border-surface-primary px-4">
         <div className="flex items-center gap-2">

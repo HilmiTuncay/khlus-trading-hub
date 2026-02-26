@@ -3,7 +3,7 @@
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { useVoiceStore } from "@/stores/voice";
-import { Hash, Volume2, Video, ChevronDown, LogOut, Mic, MicOff } from "lucide-react";
+import { Hash, Volume2, Video, ChevronDown, LogOut } from "lucide-react";
 import clsx from "clsx";
 
 const channelIcons = {
@@ -106,8 +106,9 @@ function ChannelItem({
   onClick: () => void;
 }) {
   const Icon = channelIcons[channel.type as keyof typeof channelIcons] || Hash;
-  const participants = useVoiceStore((s) => s.participants[channel.id]);
   const isVoiceChannel = channel.type === "voice" || channel.type === "video";
+  // Socket'ten gelen oda kullanıcıları (herkes görebilir)
+  const channelUsers = useVoiceStore((s) => s.channelUsers[channel.id]);
 
   return (
     <div>
@@ -122,35 +123,30 @@ function ChannelItem({
       >
         <Icon size={18} className="shrink-0 opacity-70" />
         <span className="truncate">{channel.name}</span>
+        {isVoiceChannel && channelUsers && channelUsers.length > 0 && (
+          <span className="ml-auto text-[10px] text-text-muted">
+            {channelUsers.length}
+          </span>
+        )}
       </button>
 
       {/* Ses/video kanalında aktif üyeler */}
-      {isVoiceChannel && participants && participants.length > 0 && (
+      {isVoiceChannel && channelUsers && channelUsers.length > 0 && (
         <div className="ml-6 space-y-0.5 pb-1">
-          {participants.map((p) => (
+          {channelUsers.map((u) => (
             <div
-              key={p.identity}
+              key={u.userId}
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs"
             >
               <div className="relative">
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-overlay text-[9px] font-bold">
-                  {p.name.charAt(0).toUpperCase()}
+                  {u.displayName.charAt(0).toUpperCase()}
                 </div>
-                {p.isSpeaking && (
-                  <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-surface-secondary bg-accent-green" />
-                )}
+                <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-surface-secondary bg-accent-green" />
               </div>
-              <span
-                className={clsx(
-                  "truncate",
-                  p.isSpeaking ? "text-accent-green font-medium" : "text-text-secondary"
-                )}
-              >
-                {p.name}
+              <span className="truncate text-text-secondary">
+                {u.displayName}
               </span>
-              {p.isMuted && (
-                <MicOff size={10} className="shrink-0 text-accent-red/60" />
-              )}
             </div>
           ))}
         </div>

@@ -82,6 +82,14 @@ export interface Attachment {
   size: number;
 }
 
+// ==================== Voice ====================
+export interface VoiceUser {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
 // ==================== Socket Events ====================
 export interface ServerToClientEvents {
   "message:new": (message: Message) => void;
@@ -93,6 +101,9 @@ export interface ServerToClientEvents {
   "presence:update": (data: { userId: string; status: UserStatus }) => void;
   "typing:start": (data: { userId: string; channelId: string }) => void;
   "typing:stop": (data: { userId: string; channelId: string }) => void;
+  "voice:channel_users": (data: { channelId: string; users: VoiceUser[] }) => void;
+  "voice:user_joined": (data: { channelId: string; user: VoiceUser }) => void;
+  "voice:user_left": (data: { channelId: string; userId: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -101,4 +112,7 @@ export interface ClientToServerEvents {
   "message:send": (data: { channelId: string; content: string }) => void;
   "typing:start": (channelId: string) => void;
   "typing:stop": (channelId: string) => void;
+  "voice:join": (data: { channelId: string; userId: string }) => void;
+  "voice:leave": (data: { channelId: string; userId: string }) => void;
+  "voice:get_users": (serverId: string) => void;
 }
