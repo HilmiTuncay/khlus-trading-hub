@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Users ====================
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  password    String
+  status      String   @default("offline")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ownedServers Server[]  @relation("ServerOwner")
+  members      Member[]
+  messages     Message[]
+
+  @@map("users")
+}
+
+// ==================== Servers ====================
+model Server {
+  id         String   @id @default(cuid())
+  name       String
+  iconUrl    String?  @map("icon_url")
+  ownerId    String   @map("owner_id")
+  inviteCode String   @unique @map("invite_code")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  owner      User       @relation("ServerOwner", fields: [ownerId], references: [id])
+  members    Member[]
+  categories Category[]
+  channels   Channel[]
+  roles      Role[]
+
+  @@map("servers")
+}
+
+// ==================== Members ====================
+model Member {
+  id       String   @id @default(cuid())
+  userId   String   @map("user_id")
+  serverId String   @map("server_id")
+  nickname String?
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  roles  MemberRole[]
+
+  @@unique([userId, serverId])
+  @@map("members")
+}
+
+// ==================== Roles ====================
+model Role {
+  id          String @id @default(cuid())
+  serverId    String @map("server_id")
+  name        String
+  color       String @default("#99AAB5")
+  permissions String @default("0") // bigint as string
+  position    Int    @default(0)
+  isDefault   Boolean @default(false) @map("is_default")
+
+  server             Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  members            MemberRole[]
+  channelPermissions ChannelPermission[]
+
+  @@map("roles")
+}
+
+// ==================== Member Roles (junction) ====================
+model MemberRole {
+  memberId String @map("member_id")
+  roleId   String @map("role_id")
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, roleId])
+  @@map("member_roles")
+}
+
+// ==================== Categories ====================
+model Category {
+  id       String @id @default(cuid())
+  serverId String @map("server_id")
+  name     String
+  position Int    @default(0)
+
+  server   Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  channels Channel[]
+
+  @@map("categories")
+}
+
+// ==================== Channels ====================
+model Channel {
+  id         String  @id @default(cuid())
+  serverId   String  @map("server_id")
+  categoryId String? @map("category_id")
+  name       String
+  type       String  @default("text") // text, voice, video
+  topic      String?
+  position   Int     @default(0)
+
+  server             Server              @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  category           Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  messages           Message[]
+  channelPermissions ChannelPermission[]
+
+  @@map("channels")
+}
+
+// ==================== Messages ====================
+model Message {
+  id          String   @id @default(cuid())
+  channelId   String   @map("channel_id")
+  authorId    String   @map("author_id")
+  content     String
+  attachments Json     @default("[]")
+  editedAt    DateTime? @map("edited_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@map("messages")
+}
+
+// ==================== Channel Permissions ====================
+model ChannelPermission {
+  id        String @id @default(cuid())
+  channelId String @map("channel_id")
+  roleId    String @map("role_id")
+  allow     String @default("0") // bigint as string
+  deny      String @default("0") // bigint as string
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, roleId])
+  @@map("channel_permissions")
+}

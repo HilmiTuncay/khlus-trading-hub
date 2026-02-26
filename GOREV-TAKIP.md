@@ -270,12 +270,31 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 ## Durum Gostergesi
 | Faz | Durum | Ilerleme |
 |-----|-------|----------|
-| Faz 1: Temel Altyapi | PLANLANADI | ░░░░░░░░░░ 0% |
-| Faz 2: Sunucu & Kanal | BEKLIYOR | ░░░░░░░░░░ 0% |
-| Faz 3: Rol & Yetki | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 1: Temel Altyapi | TAMAMLANDI | ██████████ 100% |
+| Faz 2: Sunucu & Kanal | DEVAM EDIYOR | ████░░░░░░ 40% |
+| Faz 3: Rol & Yetki | DEVAM EDIYOR | ██░░░░░░░░ 20% |
 | Faz 4: Ses & Video | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 5: UX | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
 
 **Son Guncelleme:** 2026-02-26
+
+---
+
+## Tamamlanan Isler (Faz 1)
+- [x] Monorepo yapisi (npm workspaces)
+- [x] Next.js 14 frontend (apps/web)
+- [x] Express + TypeScript API (apps/api)
+- [x] Shared types/permissions paketi (packages/shared)
+- [x] Prisma veritabani semasi (8 tablo)
+- [x] JWT authentication (register/login/refresh/me/logout)
+- [x] Socket.io gercek zamanli mesajlasma altyapisi
+- [x] LiveKit token endpoint
+- [x] API route'lari: auth, servers, channels, messages, members, livekit
+- [x] Frontend: Login/Register sayfalari
+- [x] Frontend: Sunucu sidebar, kanal sidebar, uye sidebar
+- [x] Frontend: Chat alani (mesaj gonderme/alma)
+- [x] Frontend: Zustand state management (auth + server store)
+- [x] Discord benzeri bitfield permission sistemi
+- [x] Tailwind CSS dark theme (trading gold tema)
