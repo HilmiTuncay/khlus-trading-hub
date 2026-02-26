@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
 import {
   LiveKitRoom,
@@ -166,6 +166,7 @@ function RoomContent({
   const [isCamOn, setIsCamOn] = useState(channelType === "video");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Ekran paylaşımı varsa otomatik odakla
   const screenShareTrack = useMemo(
@@ -218,15 +219,22 @@ function RoomContent({
     }
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement && videoContainerRef.current) {
+      videoContainerRef.current.requestFullscreen();
       setIsFullscreen(true);
-    } else {
+    } else if (document.fullscreenElement) {
       document.exitFullscreen();
       setIsFullscreen(false);
     }
-  };
+  }, []);
+
+  // Fullscreen değişikliğini dinle (ESC ile çıkış vs.)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -252,8 +260,15 @@ function RoomContent({
           <div className="flex flex-1 flex-col gap-2 overflow-hidden">
             {/* Büyük ekran */}
             <div
-              className="relative flex-1 cursor-pointer overflow-hidden rounded-lg bg-black"
-              onClick={toggleFullscreen}
+              ref={videoContainerRef}
+              className={clsx(
+                "relative flex-1 cursor-pointer overflow-hidden rounded-lg bg-black",
+                isFullscreen && "flex flex-col"
+              )}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                toggleFullscreen();
+              }}
             >
               {focusedTrack.publication?.track ? (
                 <VideoTrack
@@ -290,6 +305,79 @@ function RoomContent({
               >
                 {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
               </button>
+
+              {/* Fullscreen içi kontroller */}
+              {isFullscreen && (
+                <>
+                  {/* Alt kısımda thumbnail'lar */}
+                  {thumbnailTracks.length > 0 && (
+                    <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-2 px-4">
+                      {thumbnailTracks.map((track) => (
+                        <div
+                          key={`fs-${track.participant.identity}-${track.source}`}
+                          className="relative h-24 w-36 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-surface-elevated/80 hover:ring-2 hover:ring-brand"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocusedTrack(track);
+                          }}
+                        >
+                          {track.publication?.track ? (
+                            <VideoTrack
+                              trackRef={track}
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          ) : (
+                            <ParticipantPlaceholder name={track.participant.name || track.participant.identity} />
+                          )}
+                          <div className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 text-[10px] text-white">
+                            {track.participant.name || track.participant.identity}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Fullscreen kontrol çubuğu */}
+                  <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 bg-black/70 py-3">
+                    <ControlButton
+                      icon={isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
+                      label={isMicOn ? "Sustur" : "Mikrofon Aç"}
+                      active={isMicOn}
+                      onClick={toggleMic}
+                    />
+                    {channelType === "video" && (
+                      <ControlButton
+                        icon={isCamOn ? <VideoIcon size={20} /> : <VideoOff size={20} />}
+                        label={isCamOn ? "Kamerayı Kapat" : "Kamerayı Aç"}
+                        active={isCamOn}
+                        onClick={toggleCam}
+                      />
+                    )}
+                    <ControlButton
+                      icon={isScreenSharing ? <MonitorOff size={20} /> : <Monitor size={20} />}
+                      label={isScreenSharing ? "Paylaşımı Durdur" : "Ekran Paylaş"}
+                      active={isScreenSharing}
+                      activeColor="text-accent-green"
+                      onClick={toggleScreenShare}
+                    />
+                    <ControlButton
+                      icon={<Minimize2 size={20} />}
+                      label="Tam Ekrandan Çık"
+                      onClick={toggleFullscreen}
+                    />
+                    <ControlButton
+                      icon={<PhoneOff size={20} />}
+                      label="Ayrıl"
+                      danger
+                      onClick={() => {
+                        if (document.fullscreenElement) document.exitFullscreen();
+                        useVoiceStore.getState().leaveChannel();
+                        onDisconnect();
+                      }}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Alt kısımda küçük thumbnail'lar */}
