@@ -14,11 +14,24 @@ import { livekitRouter } from "./routes/livekit";
 const app = express();
 const httpServer = createServer(app);
 
-const PORT = process.env.API_PORT || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+const PORT = process.env.PORT || process.env.API_PORT || 3001;
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim());
 
 // Middleware
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || CORS_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Geliştirme aşamasında tümüne izin ver
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -36,7 +49,7 @@ app.use("/api/members", memberRouter);
 app.use("/api/livekit", livekitRouter);
 
 // Socket.io
-initSocket(httpServer, CORS_ORIGIN);
+initSocket(httpServer, CORS_ORIGINS);
 
 httpServer.listen(PORT, () => {
   console.log(`[API] Server running on http://localhost:${PORT}`);

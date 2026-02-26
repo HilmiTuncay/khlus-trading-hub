@@ -14,10 +14,10 @@ const voiceChannels = new Map<string, Map<string, VoiceUser>>();
 // socketId -> { channelId, userId }
 const socketVoiceState = new Map<string, { channelId: string; userId: string }>();
 
-export function initSocket(httpServer: HttpServer, corsOrigin: string) {
+export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
   io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: corsOrigin,
+      origin: corsOrigins,
       credentials: true,
     },
   });
