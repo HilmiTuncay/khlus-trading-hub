@@ -65,7 +65,7 @@ export function ServerSidebar() {
       <button
         onClick={() => setShowModal("create")}
         className="flex h-12 w-12 items-center justify-center rounded-[24px] bg-surface-elevated text-accent-green transition-all hover:rounded-[16px] hover:bg-accent-green hover:text-white"
-        title="Sunucu Olustur"
+        title="Sunucu Oluştur"
       >
         <Plus size={24} />
       </button>
@@ -74,7 +74,7 @@ export function ServerSidebar() {
       <button
         onClick={() => setShowModal("join")}
         className="flex h-12 w-12 items-center justify-center rounded-[24px] bg-surface-elevated text-accent-blue transition-all hover:rounded-[16px] hover:bg-accent-blue hover:text-white"
-        title="Sunucuya Katil"
+        title="Sunucuya Katıl"
       >
         <LogIn size={20} />
       </button>
@@ -84,13 +84,13 @@ export function ServerSidebar() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="w-full max-w-sm rounded-xl bg-surface-secondary p-6">
             <h2 className="mb-4 text-xl font-bold">
-              {showModal === "create" ? "Sunucu Olustur" : "Sunucuya Katil"}
+              {showModal === "create" ? "Sunucu Oluştur" : "Sunucuya Katıl"}
             </h2>
             <input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={
-                showModal === "create" ? "Sunucu adi" : "Davet kodu"
+                showModal === "create" ? "Sunucu adı" : "Davet kodu"
               }
               className="mb-4 w-full rounded-lg bg-surface-primary px-4 py-3 text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
               autoFocus
@@ -108,13 +108,13 @@ export function ServerSidebar() {
                 }}
                 className="flex-1 rounded-lg bg-surface-overlay px-4 py-2 text-text-secondary hover:bg-surface-elevated"
               >
-                Iptal
+                İptal
               </button>
               <button
                 onClick={showModal === "create" ? handleCreate : handleJoin}
                 className="flex-1 rounded-lg bg-brand px-4 py-2 font-semibold text-surface-primary hover:bg-brand-dark"
               >
-                {showModal === "create" ? "Olustur" : "Katil"}
+                {showModal === "create" ? "Oluştur" : "Katıl"}
               </button>
             </div>
           </div>

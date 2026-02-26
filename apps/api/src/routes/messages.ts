@@ -38,7 +38,7 @@ messageRouter.get("/:channelId", async (req: Request, res: Response) => {
     res.json({ messages: messages.reverse() });
   } catch (error) {
     console.error("[Messages] Get error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -52,7 +52,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
     });
 
     if (!channel) {
-      return res.status(404).json({ error: "Kanal bulunamadi" });
+      return res.status(404).json({ error: "Kanal bulunamadı" });
     }
 
     // Check membership
@@ -66,7 +66,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
     });
 
     if (!member) {
-      return res.status(403).json({ error: "Bu sunucunun uyesi degilsiniz" });
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
     const message = await prisma.message.create({
@@ -101,7 +101,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     console.error("[Messages] Send error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -113,11 +113,11 @@ messageRouter.delete("/:messageId", async (req: Request, res: Response) => {
     });
 
     if (!message) {
-      return res.status(404).json({ error: "Mesaj bulunamadi" });
+      return res.status(404).json({ error: "Mesaj bulunamadı" });
     }
 
     if (message.authorId !== req.user!.userId) {
-      return res.status(403).json({ error: "Bu mesaji silme yetkiniz yok" });
+      return res.status(403).json({ error: "Bu mesajı silme yetkiniz yok" });
     }
 
     await prisma.message.delete({ where: { id: req.params.messageId } });
@@ -135,6 +135,6 @@ messageRouter.delete("/:messageId", async (req: Request, res: Response) => {
     res.json({ message: "Mesaj silindi" });
   } catch (error) {
     console.error("[Messages] Delete error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });

@@ -33,7 +33,7 @@ channelRouter.post("/", async (req: Request, res: Response) => {
     });
 
     if (!member) {
-      return res.status(403).json({ error: "Bu sunucunun uyesi degilsiniz" });
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
     const channelCount = await prisma.channel.count({
@@ -57,7 +57,7 @@ channelRouter.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     console.error("[Channels] Create error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -70,12 +70,12 @@ channelRouter.get("/:channelId", async (req: Request, res: Response) => {
     });
 
     if (!channel) {
-      return res.status(404).json({ error: "Kanal bulunamadi" });
+      return res.status(404).json({ error: "Kanal bulunamadı" });
     }
 
     res.json({ channel });
   } catch (error) {
     console.error("[Channels] Get error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });

@@ -22,7 +22,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     req.cookies?.token;
 
   if (!token) {
-    return res.status(401).json({ error: "Giris yapmaniz gerekiyor" });
+    return res.status(401).json({ error: "Giriş yapmanız gerekiyor" });
   }
 
   try {
@@ -30,6 +30,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     req.user = payload;
     next();
   } catch {
-    return res.status(401).json({ error: "Gecersiz veya suresi dolmus token" });
+    return res.status(401).json({ error: "Geçersiz veya süresi dolmuş token" });
   }
 }

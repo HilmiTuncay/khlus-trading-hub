@@ -19,7 +19,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
     const apiSecret = process.env.LIVEKIT_API_SECRET;
 
     if (!apiKey || !apiSecret) {
-      return res.status(503).json({ error: "LiveKit yapilandirilmamis" });
+      return res.status(503).json({ error: "LiveKit yapılandırılmamış" });
     }
 
     // Verify channel exists and is voice/video type
@@ -28,7 +28,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
     });
 
     if (!channel || (channel.type !== "voice" && channel.type !== "video")) {
-      return res.status(400).json({ error: "Gecersiz ses/video kanali" });
+      return res.status(400).json({ error: "Geçersiz ses/video kanalı" });
     }
 
     // Verify membership
@@ -42,7 +42,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
     });
 
     if (!member) {
-      return res.status(403).json({ error: "Bu sunucunun uyesi degilsiniz" });
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
     const user = await prisma.user.findUnique({
@@ -54,7 +54,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity: req.user!.userId,
-      name: user?.displayName || "Kullanici",
+      name: user?.displayName || "Kullanıcı",
     });
 
     token.addGrant({
@@ -74,6 +74,6 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("[LiveKit] Token error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });

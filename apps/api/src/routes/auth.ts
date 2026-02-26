@@ -11,14 +11,14 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "dev-refresh-secret-change-me";
 
 const registerSchema = z.object({
-  email: z.string().email("Gecerli bir email adresi girin"),
+  email: z.string().email("Geçerli bir email adresi girin"),
   username: z
     .string()
-    .min(3, "Kullanici adi en az 3 karakter olmali")
+    .min(3, "Kullanıcı adı en az 3 karakter olmalı")
     .max(32)
-    .regex(/^[a-zA-Z0-9_]+$/, "Sadece harf, rakam ve alt cizgi kullanilabilir"),
+    .regex(/^[a-zA-Z0-9_]+$/, "Sadece harf, rakam ve alt cizgi kullanılabilir"),
   displayName: z.string().min(1).max(64),
-  password: z.string().min(6, "Sifre en az 6 karakter olmali"),
+  password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
 });
 
 const loginSchema = z.object({
@@ -41,12 +41,12 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
     const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
     if (existingEmail) {
-      return res.status(400).json({ error: "Bu email adresi zaten kullaniliyor" });
+      return res.status(400).json({ error: "Bu email adresi zaten kullanılıyor" });
     }
 
     const existingUsername = await prisma.user.findUnique({ where: { username: data.username } });
     if (existingUsername) {
-      return res.status(400).json({ error: "Bu kullanici adi zaten kullaniliyor" });
+      return res.status(400).json({ error: "Bu kullanıcı adı zaten kullanılıyor" });
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -84,7 +84,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     console.error("[Auth] Register error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -95,12 +95,12 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { email: data.email } });
     if (!user) {
-      return res.status(401).json({ error: "Email veya sifre hatali" });
+      return res.status(401).json({ error: "Email veya şifre hatalı" });
     }
 
     const validPassword = await bcrypt.compare(data.password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ error: "Email veya sifre hatali" });
+      return res.status(401).json({ error: "Email veya şifre hatalı" });
     }
 
     await prisma.user.update({
@@ -132,7 +132,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     console.error("[Auth] Login error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -141,7 +141,7 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) {
-      return res.status(401).json({ error: "Refresh token bulunamadi" });
+      return res.status(401).json({ error: "Refresh token bulunamadı" });
     }
 
     const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as {
@@ -160,7 +160,7 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
 
     res.json({ token: tokens.token });
   } catch {
-    res.status(401).json({ error: "Gecersiz refresh token" });
+    res.status(401).json({ error: "Geçersiz refresh token" });
   }
 });
 
@@ -180,13 +180,13 @@ authRouter.get("/me", authenticate, async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: "Kullanici bulunamadi" });
+      return res.status(404).json({ error: "Kullanıcı bulunamadı" });
     }
 
     res.json({ user });
   } catch (error) {
     console.error("[Auth] Me error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -198,5 +198,5 @@ authRouter.post("/logout", authenticate, async (req: Request, res: Response) => 
   });
 
   res.clearCookie("refreshToken");
-  res.json({ message: "Basariyla cikis yapildi" });
+  res.json({ message: "Başarıyla çıkış yapıldı" });
 });

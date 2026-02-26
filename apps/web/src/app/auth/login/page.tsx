@@ -21,7 +21,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/servers");
     } catch (err: any) {
-      setError(err.message || "Giris basarisiz");
+      setError(err.message || "Giriş başarısız");
     } finally {
       setLoading(false);
     }
@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-xl bg-surface-secondary p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-brand">Khlus Trading Hub</h1>
-          <p className="mt-2 text-text-secondary">Hesabiniza giris yapin</p>
+          <p className="mt-2 text-text-secondary">Hesabınıza giriş yapın</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,7 +57,7 @@ export default function LoginPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
-              Sifre
+              Şifre
             </label>
             <input
               type="password"
@@ -73,14 +73,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full rounded-lg bg-brand py-3 font-semibold text-surface-primary transition hover:bg-brand-dark disabled:opacity-50"
           >
-            {loading ? "Giris yapiliyor..." : "Giris Yap"}
+            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm text-text-secondary">
-          Hesabiniz yok mu?{" "}
+          Hesabınız yok mu?{" "}
           <Link href="/auth/register" className="text-brand hover:underline">
-            Kayit ol
+            Kayıt ol
           </Link>
         </p>
       </div>

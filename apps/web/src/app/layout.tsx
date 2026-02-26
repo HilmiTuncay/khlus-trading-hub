@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Khlus Trading Hub",
-  description: "Traderlar icin iletisim platformu",
+  description: "Traderlar için iletişim platformu",
 };
 
 export default function RootLayout({

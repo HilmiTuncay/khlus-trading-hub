@@ -28,7 +28,7 @@ serverRouter.get("/", async (req: Request, res: Response) => {
     res.json({ servers });
   } catch (error) {
     console.error("[Servers] List error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -123,7 +123,7 @@ serverRouter.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ error: error.errors[0].message });
     }
     console.error("[Servers] Create error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -149,7 +149,7 @@ serverRouter.get("/:serverId", async (req: Request, res: Response) => {
     });
 
     if (!server) {
-      return res.status(404).json({ error: "Sunucu bulunamadi" });
+      return res.status(404).json({ error: "Sunucu bulunamadı" });
     }
 
     const isMember = server.members.some((m) => m.userId === req.user!.userId);
@@ -160,7 +160,7 @@ serverRouter.get("/:serverId", async (req: Request, res: Response) => {
     res.json({ server });
   } catch (error) {
     console.error("[Servers] Get error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });
 
@@ -173,7 +173,7 @@ serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
     });
 
     if (!server) {
-      return res.status(404).json({ error: "Gecersiz davet kodu" });
+      return res.status(404).json({ error: "Geçersiz davet kodu" });
     }
 
     const existingMember = await prisma.member.findUnique({
@@ -186,7 +186,7 @@ serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
     });
 
     if (existingMember) {
-      return res.status(400).json({ error: "Zaten bu sunucunun uyesisiniz" });
+      return res.status(400).json({ error: "Zaten bu sunucunun üyesisiniz" });
     }
 
     const member = await prisma.member.create({
@@ -206,6 +206,6 @@ serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
     res.status(201).json({ server, member });
   } catch (error) {
     console.error("[Servers] Join error:", error);
-    res.status(500).json({ error: "Sunucu hatasi" });
+    res.status(500).json({ error: "Sunucu hatası" });
   }
 });

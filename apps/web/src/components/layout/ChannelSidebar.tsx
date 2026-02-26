@@ -19,7 +19,7 @@ export function ChannelSidebar() {
     return (
       <div className="flex h-full w-60 flex-col bg-surface-secondary">
         <div className="flex h-12 items-center border-b border-surface-primary px-4">
-          <span className="text-text-muted">Sunucu secin</span>
+          <span className="text-text-muted">Sunucu seçin</span>
         </div>
       </div>
     );
@@ -89,7 +89,7 @@ export function ChannelSidebar() {
         <button
           onClick={logout}
           className="rounded p-1 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
-          title="Cikis Yap"
+          title="Çıkış Yap"
         >
           <LogOut size={16} />
         </button>

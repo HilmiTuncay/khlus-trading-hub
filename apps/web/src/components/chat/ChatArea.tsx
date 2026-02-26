@@ -6,6 +6,8 @@ import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
 import { Hash, Send } from "lucide-react";
+import { MediaRoom } from "@/components/voice/MediaRoom";
+import { ChannelVoicePanel } from "@/components/voice/ChannelVoicePanel";
 
 export function ChatArea() {
   const { activeChannel } = useServerStore();
@@ -13,10 +15,16 @@ export function ChatArea() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inVoiceRoom, setInVoiceRoom] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevChannelRef = useRef<string | null>(null);
 
-  // Load messages when channel changes
+  // Voice room durumunu kanal değiştiğinde sıfırla
+  useEffect(() => {
+    setInVoiceRoom(false);
+  }, [activeChannel?.id]);
+
+  // Mesajları yükle (sadece text kanalı)
   useEffect(() => {
     if (!activeChannel || activeChannel.type !== "text") return;
 
@@ -34,7 +42,7 @@ export function ChatArea() {
 
     loadMessages();
 
-    // Socket: join channel
+    // Socket: kanala katıl
     const socket = connectSocket();
 
     if (prevChannelRef.current) {
@@ -60,7 +68,7 @@ export function ChatArea() {
     };
   }, [activeChannel]);
 
-  // Auto-scroll
+  // Otomatik kaydırma
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -77,31 +85,45 @@ export function ChatArea() {
     }
   };
 
+  // Kanal seçilmemiş
   if (!activeChannel) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="text-center text-text-muted">
           <Hash size={48} className="mx-auto mb-4 opacity-30" />
-          <p className="text-lg">Bir kanal secin</p>
+          <p className="text-lg">Bir kanal seçin</p>
         </div>
       </div>
     );
   }
 
-  if (activeChannel.type !== "text") {
+  // Ses / Video kanalı
+  if (activeChannel.type === "voice" || activeChannel.type === "video") {
+    if (inVoiceRoom) {
+      return (
+        <MediaRoom
+          channelId={activeChannel.id}
+          channelName={activeChannel.name}
+          channelType={activeChannel.type}
+          onDisconnect={() => setInVoiceRoom(false)}
+        />
+      );
+    }
+
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center text-text-muted">
-          <p className="text-lg">Ses/Video kanali</p>
-          <p className="mt-2 text-sm">Katilmak icin kanala tiklayin</p>
-        </div>
-      </div>
+      <ChannelVoicePanel
+        channelId={activeChannel.id}
+        channelName={activeChannel.name}
+        channelType={activeChannel.type}
+        onJoin={() => setInVoiceRoom(true)}
+      />
     );
   }
 
+  // Text kanalı
   return (
     <div className="flex flex-1 flex-col">
-      {/* Channel header */}
+      {/* Kanal başlığı */}
       <div className="flex h-12 items-center border-b border-surface-primary px-4">
         <Hash size={20} className="mr-2 text-text-muted" />
         <h3 className="font-semibold">{activeChannel.name}</h3>
@@ -115,7 +137,7 @@ export function ChatArea() {
         )}
       </div>
 
-      {/* Messages */}
+      {/* Mesajlar */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -124,9 +146,9 @@ export function ChatArea() {
         ) : messages.length === 0 ? (
           <div className="py-8 text-center text-text-muted">
             <p className="text-lg font-semibold">
-              #{activeChannel.name} kanalina hos geldiniz!
+              #{activeChannel.name} kanalına hoş geldiniz!
             </p>
-            <p className="mt-1 text-sm">Ilk mesaji siz gonderin.</p>
+            <p className="mt-1 text-sm">İlk mesajı siz gönderin.</p>
           </div>
         ) : (
           messages.map((msg) => (
@@ -151,7 +173,7 @@ export function ChatArea() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Message input */}
+      {/* Mesaj girişi */}
       <div className="px-4 pb-4">
         <div className="flex items-center rounded-lg bg-surface-elevated px-4">
           <input
@@ -163,7 +185,7 @@ export function ChatArea() {
                 handleSend();
               }
             }}
-            placeholder={`#${activeChannel.name} kanalina mesaj gonderin`}
+            placeholder={`#${activeChannel.name} kanalına mesaj gönderin`}
             className="flex-1 bg-transparent py-3 text-text-primary outline-none placeholder:text-text-muted"
           />
           <button

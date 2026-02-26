@@ -25,7 +25,7 @@ export default function RegisterPage() {
       await register(form);
       router.push("/servers");
     } catch (err: any) {
-      setError(err.message || "Kayit basarisiz");
+      setError(err.message || "Kayıt başarısız");
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md rounded-xl bg-surface-secondary p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-brand">Khlus Trading Hub</h1>
-          <p className="mt-2 text-text-secondary">Yeni hesap olusturun</p>
+          <p className="mt-2 text-text-secondary">Yeni hesap oluşturun</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,7 +64,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
-              Kullanici Adi
+              Kullanıcı Adı
             </label>
             <input
               type="text"
@@ -78,7 +78,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
-              Gorunen Ad
+              Görünen Ad
             </label>
             <input
               type="text"
@@ -91,7 +91,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
-              Sifre
+              Şifre
             </label>
             <input
               type="password"
@@ -108,14 +108,14 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full rounded-lg bg-brand py-3 font-semibold text-surface-primary transition hover:bg-brand-dark disabled:opacity-50"
           >
-            {loading ? "Kayit yapiliyor..." : "Kayit Ol"}
+            {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm text-text-secondary">
-          Zaten hesabiniz var mi?{" "}
+          Zaten hesabınız var mı?{" "}
           <Link href="/auth/login" className="text-brand hover:underline">
-            Giris yap
+            Giriş yap
           </Link>
         </p>
       </div>

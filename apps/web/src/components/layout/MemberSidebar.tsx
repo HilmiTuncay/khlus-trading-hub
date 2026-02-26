@@ -24,12 +24,12 @@ export function MemberSidebar() {
       <div className="flex-1 overflow-y-auto px-2 py-4">
         {/* Online members */}
         {online.length > 0 && (
-          <MemberGroup title={`Cevrimici — ${online.length}`} members={online} />
+          <MemberGroup title={`Çevrimiçi — ${online.length}`} members={online} />
         )}
 
         {/* Offline members */}
         {offline.length > 0 && (
-          <MemberGroup title={`Cevrimdisi — ${offline.length}`} members={offline} />
+          <MemberGroup title={`Çevrimdışı — ${offline.length}`} members={offline} />
         )}
       </div>
     </div>
