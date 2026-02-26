@@ -38,7 +38,7 @@ serverRouter.post("/", async (req: Request, res: Response) => {
     const { name } = createServerSchema.parse(req.body);
     const inviteCode = crypto.randomBytes(4).toString("hex");
 
-    const server = await prisma.$transaction(async (tx) => {
+    const server = await prisma.$transaction(async (tx: any) => {
       // Create server
       const server = await tx.server.create({
         data: {
@@ -152,7 +152,7 @@ serverRouter.get("/:serverId", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Sunucu bulunamadı" });
     }
 
-    const isMember = server.members.some((m) => m.userId === req.user!.userId);
+    const isMember = server.members.some((m: any) => m.userId === req.user!.userId);
     if (!isMember) {
       return res.status(403).json({ error: "Bu sunucuya erisim yetkiniz yok" });
     }
