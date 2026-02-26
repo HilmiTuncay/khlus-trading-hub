@@ -1,0 +1,281 @@
+# KHLUS Trading Hub - Proje Gorev Takip
+
+## Proje Ozeti
+Discord'un kapanmasindan etkilenen trader topluluklari icin yenilikci, dusuk maliyetli, yuksek performansli bir iletisim platformu.
+
+**Hedef:** Traderlarin Discord sonrasi magduriyetini gidermek.
+**Site:** [khlustrading.net](https://khlustrading.net)
+
+---
+
+## Temel Gereksinimler
+- [x] Oda yapilari (metin, ses, video kanallari) - Discord benzeri sunucu/kanal mimarisi
+- [x] 40-50 kisiye kadar ekran paylasimi
+- [x] Full HD goruntu kalitesi
+- [x] Dusuk gecikme (latency), yuksek ses kalitesi
+- [x] Rol ve yetki yonetimi (admin, moderator, uye, misafir vb.)
+- [x] Sunucu yapisi (her topluluk kendi sunucusunu olusturabilmeli)
+- [x] Baslangicta minimum maliyet (ucretsiz tier/kredi kampanyalari)
+
+---
+
+## Teknoloji Secimi
+
+### Frontend
+| Teknoloji | Neden |
+|-----------|-------|
+| **Next.js 14 (React)** | SSR, performans, SEO, genis ekosistem |
+| **TypeScript** | Tip guvenligi, buyuk projeler icin zorunlu |
+| **Tailwind CSS** | Hizli UI gelistirme |
+| **LiveKit Client SDK** | WebRTC video/ses/ekran paylasimi |
+| **Socket.io Client** | Gercek zamanli mesajlasma |
+
+### Backend
+| Teknoloji | Neden |
+|-----------|-------|
+| **Node.js + Express** | Hizli gelistirme, JS ekosistemi |
+| **TypeScript** | Frontend ile ortak dil |
+| **Socket.io** | Gercek zamanli iletisim |
+| **LiveKit Server** | SFU - 40-50 kisilik video/ses/ekran paylasimi |
+| **PostgreSQL** | Iliskisel veri (kullanicilar, sunucular, roller) |
+| **Redis** | Onbellek, presence (cevirimici durumu), oturum |
+| **Prisma ORM** | Veritabani erisimi |
+
+### Altyapi & Hosting
+| Hizmet | Plan | Maliyet |
+|--------|------|---------|
+| **Google Cloud Platform** | $300 ucretsiz kredi (90 gun) + Startup programi ($100K'a kadar) | UCRETSIZ |
+| **Cloudflare** | CDN, DDoS koruma, DNS | UCRETSIZ |
+| **Vercel** | Next.js frontend hosting (Hobby plan) | UCRETSIZ |
+| **Supabase** | PostgreSQL + Auth (Free tier: 500MB DB) | UCRETSIZ |
+| **Upstash** | Redis (Free tier: 10K komut/gun) | UCRETSIZ |
+| **LiveKit Cloud** | Free tier: 500 katilimci-dakika/ay | UCRETSIZ baslangic |
+
+### Neden LiveKit?
+- **Acik kaynak** SFU (Selective Forwarding Unit)
+- 40-50 kisi ayni anda video/ses/ekran paylasimi destegi
+- Dusuk gecikme (<200ms)
+- Full HD (1080p) destek
+- Kendi sunucumuzda calistirabilme (Google Cloud uzerinde)
+- WebRTC tabanli - tarayici uyumlu
+- Discord'un kullandigi mimarinin aynisi
+
+---
+
+## Maliyet Optimizasyonu Stratejisi
+
+### Faz 1: Tamamen Ucretsiz Baslangic (0-3 ay)
+| Kaynak | Ucretsiz Kullanim |
+|--------|-------------------|
+| Google Cloud | $300 kredi (90 gun) - LiveKit sunucusu icin |
+| Vercel | Frontend hosting (Hobby - ucretsiz) |
+| Supabase | Auth + DB (Free tier) |
+| Upstash | Redis (Free tier) |
+| LiveKit Cloud | 500 katilimci-dk/ay ucretsiz |
+| Cloudflare | CDN + DNS ucretsiz |
+| GitHub | Kod deposu ucretsiz |
+
+### Faz 2: Dusuk Maliyetli Olcekleme (3-6 ay)
+- Google for Startups Cloud Program basvurusu ($2K-$100K kredi)
+- AWS Activate basvurusu (alternatif $5K-$100K kredi)
+- Oracle Cloud Always Free tier (ARM compute - cok cömert)
+- LiveKit self-hosted (Google Cloud uzerinde)
+
+### Faz 3: Gelir Modeli (6+ ay)
+- Premium abonelik (daha fazla oda, daha yuksek kalite)
+- Topluluk olusturma (sunucu boost benzeri)
+- Egitim icerigi entegrasyonu
+
+---
+
+## Mimari Tasarim
+
+```
++------------------+     +------------------+     +------------------+
+|                  |     |                  |     |                  |
+|   Next.js App    |---->|   API Server     |---->|   PostgreSQL     |
+|   (Vercel)       |     |   (Node.js)      |     |   (Supabase)     |
+|                  |     |   (Google Cloud)  |     |                  |
++------------------+     +------------------+     +------------------+
+        |                        |
+        |                        v
+        |                +------------------+     +------------------+
+        |                |                  |     |                  |
+        +--------------->|   LiveKit SFU    |     |     Redis        |
+         WebRTC          |   (Google Cloud)  |     |   (Upstash)      |
+                         |                  |     |                  |
+                         +------------------+     +------------------+
+                                |
+                                v
+                    +------------------------+
+                    |  40-50 Kullanici        |
+                    |  - Video (1080p)        |
+                    |  - Ses (Opus codec)     |
+                    |  - Ekran Paylasimi      |
+                    +------------------------+
+```
+
+---
+
+## Sunucu & Oda Yapisi (Discord Benzeri)
+
+```
+Sunucu (Server/Guild)
+├── Kategoriler
+│   ├── GENEL
+│   │   ├── #genel-sohbet (metin)
+│   │   ├── #duyurular (metin, sadece admin yazabilir)
+│   │   └── #hosgeldiniz (metin, salt okunur)
+│   ├── TRADING
+│   │   ├── #analiz-paylasimi (metin)
+│   │   ├── #sinyal-kanali (metin, premium)
+│   │   ├── 🔊 canli-trading (ses+video+ekran)
+│   │   └── 🔊 analiz-odasi (ses+video+ekran)
+│   └── EGITIM
+│       ├── #sorular (metin)
+│       ├── 🔊 ders-odasi (ses+video+ekran, 50 kisi)
+│       └── #kaynaklar (metin)
+└── Roller
+    ├── Sahip (Owner) - tam yetki
+    ├── Admin - sunucu yonetimi
+    ├── Moderator - icerik moderasyonu
+    ├── Egitmen - egitim odalarina erisim
+    ├── Premium Uye - premium kanallara erisim
+    ├── Uye - standart erisim
+    └── Misafir - sinirli erisim
+```
+
+---
+
+## Gelistirme Fazlari & Gorev Listesi
+
+### FAZ 1: Temel Altyapi (Hafta 1-2)
+- [ ] Proje yapisini olustur (monorepo: apps/web, apps/api, packages/shared)
+- [ ] Next.js frontend projesini baslat
+- [ ] Node.js + Express API projesini baslat
+- [ ] TypeScript konfigurasyonu
+- [ ] Supabase projesi olustur (Auth + PostgreSQL)
+- [ ] Veritabani sema tasarimi (Prisma)
+  - [ ] Users tablosu
+  - [ ] Servers tablosu
+  - [ ] Channels tablosu
+  - [ ] Roles & Permissions tablolari
+  - [ ] Messages tablosu
+  - [ ] Members tablosu (user-server iliskisi)
+- [ ] Temel authentication akisi (kayit, giris, JWT)
+- [ ] CI/CD pipeline (GitHub Actions)
+
+### FAZ 2: Sunucu & Kanal Sistemi (Hafta 3-4)
+- [ ] Sunucu olusturma/duzenleme/silme
+- [ ] Davet linki sistemi
+- [ ] Kategori ve kanal yonetimi
+- [ ] Metin kanali - gercek zamanli mesajlasma (Socket.io)
+- [ ] Mesaj gecmisi ve sayfalama
+- [ ] Dosya/gorsel paylasimi
+- [ ] Emoji ve reaksiyon sistemi
+
+### FAZ 3: Rol & Yetki Sistemi (Hafta 5)
+- [ ] Rol olusturma ve duzenleme
+- [ ] Izin (permission) sistemi (bitfield tabanli, Discord benzeri)
+- [ ] Kanal bazli yetki overridelari
+- [ ] Moderasyon araclari (ban, kick, mute, timeout)
+
+### FAZ 4: Ses & Video (Hafta 6-8)
+- [ ] LiveKit entegrasyonu
+- [ ] Ses kanallari (WebRTC)
+- [ ] Video kanallari (1080p)
+- [ ] Ekran paylasimi (40-50 kisi gorebilmeli)
+- [ ] Ses kontrolu (mute, defan, ses seviyesi)
+- [ ] Video kontrolu (kamera ac/kapat)
+- [ ] Konusma algilama (voice activity detection)
+- [ ] Oda kapasitesi yonetimi
+
+### FAZ 5: Kullanici Deneyimi (Hafta 9-10)
+- [ ] Responsive tasarim (mobil uyumlu)
+- [ ] Karanlik/aydinlik tema
+- [ ] Bildirim sistemi
+- [ ] Kullanici profili ve ayarlar
+- [ ] Dogrudan mesaj (DM) sistemi
+- [ ] Cevrimici/cevimdisi durum gosterimi
+- [ ] Arama fonksiyonu (mesaj, kullanici, kanal)
+
+### FAZ 6: Trading Ozel Ozellikler (Hafta 11-12)
+- [ ] Trading sinyal kanali (ozel format)
+- [ ] Grafik/chart paylasim destegi
+- [ ] Pin'lenmis mesajlar
+- [ ] Anket/oylama sistemi
+- [ ] Planlanan etkinlikler (ders takvimi)
+
+### FAZ 7: Optimizasyon & Lansman (Hafta 13-14)
+- [ ] Performans optimizasyonu
+- [ ] Guvenlik denetimi
+- [ ] Yukleme testleri (40-50 kisi simulasyonu)
+- [ ] Beta test sureci
+- [ ] Uretim ortamina deploy
+- [ ] khlustrading.net entegrasyonu
+
+---
+
+## Veritabani Semasi (On Tasarim)
+
+```sql
+-- Kullanicilar
+Users: id, email, username, display_name, avatar_url, status, created_at
+
+-- Sunucular
+Servers: id, name, icon_url, owner_id, invite_code, created_at
+
+-- Uyeler (User <-> Server iliskisi)
+Members: id, user_id, server_id, nickname, joined_at
+
+-- Roller
+Roles: id, server_id, name, color, permissions (bigint), position, created_at
+
+-- Uye Rolleri
+MemberRoles: member_id, role_id
+
+-- Kategoriler
+Categories: id, server_id, name, position
+
+-- Kanallar
+Channels: id, server_id, category_id, name, type (text|voice|video), topic, position
+
+-- Mesajlar
+Messages: id, channel_id, author_id, content, attachments, edited_at, created_at
+
+-- Kanal Yetki Override
+ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
+```
+
+---
+
+## Onemli Linkler & Kaynaklar
+- [LiveKit Docs](https://docs.livekit.io/)
+- [Next.js Docs](https://nextjs.org/docs)
+- [Supabase Docs](https://supabase.com/docs)
+- [Google Cloud Free Tier](https://cloud.google.com/free)
+- [Google for Startups](https://cloud.google.com/startup)
+- [Prisma Docs](https://www.prisma.io/docs)
+
+---
+
+## Notlar
+- LiveKit SFU, baslangiicta LiveKit Cloud free tier ile baslatilabilir. Kullanici sayisi artinca Google Cloud uzerinde self-hosted gecis yapilacak.
+- Supabase free tier 500MB veritabani limiti var. Ilk 1000 kullanici icin yeterli.
+- Vercel free tier aylik 100GB bandwidth. Baslangic icin yeterli.
+- Tum servisler ucretsiz tier ile baslatilacak, buyume ile olceklenecek.
+
+---
+
+## Durum Gostergesi
+| Faz | Durum | Ilerleme |
+|-----|-------|----------|
+| Faz 1: Temel Altyapi | PLANLANADI | ░░░░░░░░░░ 0% |
+| Faz 2: Sunucu & Kanal | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 3: Rol & Yetki | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 4: Ses & Video | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 5: UX | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
+
+**Son Guncelleme:** 2026-02-26
