@@ -4,7 +4,7 @@ services:
     runtime: node
     region: frankfurt
     plan: free
-    buildCommand: npm install && cd apps/api && npx prisma generate && npx prisma db push --skip-generate
+    buildCommand: npm install && cd apps/api && npx prisma generate
     startCommand: cd apps/api && npm start
     envVars:
       - key: NODE_VERSION
