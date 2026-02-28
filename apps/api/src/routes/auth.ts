@@ -18,7 +18,7 @@ const registerSchema = z.object({
     .max(32)
     .regex(/^[a-zA-Z0-9_]+$/, "Sadece harf, rakam ve alt cizgi kullanılabilir"),
   displayName: z.string().min(1).max(64),
-  password: z.string().min(6, "Şifre en az 6 karakter olmalı"),
+  password: z.string().min(8, "Şifre en az 8 karakter olmalı"),
 });
 
 const loginSchema = z.object({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo, useCallback } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
@@ -462,7 +462,7 @@ export function ChatArea() {
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎯", "💯", "🚀"];
 
-function MessageItem({ msg, userId, onPin, onDelete, canDelete }: {
+const MessageItem = memo(function MessageItem({ msg, userId, onPin, onDelete, canDelete }: {
   msg: any;
   userId?: string;
   onPin?: () => void;
@@ -595,7 +595,7 @@ function MessageItem({ msg, userId, onPin, onDelete, canDelete }: {
       )}
     </div>
   );
-}
+});
 
 function AttachmentPreview({ attachment }: { attachment: any }) {
   const isImage = attachment.contentType?.startsWith("image/");

@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { createServer } from "http";
@@ -26,29 +28,65 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .split(",")
   .map((s) => s.trim());
 
-// Middleware
+// Güvenlik headers
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false,
+  })
+);
+
+// CORS
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || CORS_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
-        callback(null, true); // Geliştirme aşamasında tümüne izin ver
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
   })
 );
-app.use(express.json());
+
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// Genel rate limit
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Çok fazla istek. Lütfen biraz bekleyin." },
+});
+app.use("/api/", generalLimiter);
+
+// Auth rate limit (daha sıkı)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: "Çok fazla giriş denemesi. 15 dakika bekleyin." },
+});
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
 
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Static files (uploads)
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Static files (uploads) - Content-Disposition header ile
+app.use(
+  "/uploads",
+  (_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    next();
+  },
+  express.static(path.join(process.cwd(), "uploads"))
+);
 
 // Routes
 app.use("/api/auth", authRouter);

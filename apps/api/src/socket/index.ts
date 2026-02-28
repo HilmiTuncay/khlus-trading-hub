@@ -1,11 +1,14 @@
 import { Server as HttpServer } from "http";
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
   VoiceUser,
 } from "@khlus/shared";
 import { prisma } from "../db/prisma";
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production";
 
 let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -22,8 +25,23 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     },
   });
 
+  // Socket authentication middleware
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace("Bearer ", "");
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+        (socket as any).userId = decoded.userId;
+      } catch {
+        // Token geçersiz ama bağlantıya izin ver (anonim)
+      }
+    }
+    next();
+  });
+
   io.on("connection", (socket) => {
-    console.log(`[Socket] Client connected: ${socket.id}`);
+    const authenticatedUserId = (socket as any).userId;
+    console.log(`[Socket] Client connected: ${socket.id}${authenticatedUserId ? ` (user: ${authenticatedUserId})` : " (anonymous)"}`);
 
     // Text kanal odası
     socket.on("channel:join", (channelId) => {
@@ -37,7 +55,9 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     // Ses/video kanalına katılma
     socket.on("voice:join", async (data) => {
       try {
-        const { channelId, userId } = data;
+        const { channelId } = data;
+        const userId = authenticatedUserId || data.userId;
+        if (!userId) return;
 
         // Kullanıcı bilgilerini çek
         const user = await prisma.user.findUnique({
@@ -131,14 +151,14 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     // Typing
     socket.on("typing:start", (channelId) => {
       socket.to(`channel:${channelId}`).emit("typing:start", {
-        userId: (socket as any).userId || "unknown",
+        userId: authenticatedUserId || "unknown",
         channelId,
       });
     });
 
     socket.on("typing:stop", (channelId) => {
       socket.to(`channel:${channelId}`).emit("typing:stop", {
-        userId: (socket as any).userId || "unknown",
+        userId: authenticatedUserId || "unknown",
         channelId,
       });
     });

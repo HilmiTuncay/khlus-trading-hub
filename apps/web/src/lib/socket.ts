@@ -8,9 +8,11 @@ let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 export function getSocket() {
   if (typeof window === "undefined") return null;
   if (!socket) {
+    const token = localStorage.getItem("token");
     socket = io(API_URL, {
       withCredentials: true,
       autoConnect: false,
+      auth: token ? { token } : undefined,
     });
   }
   return socket;

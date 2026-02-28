@@ -207,11 +207,11 @@ Sunucu (Server/Guild)
 - [x] Planlanan etkinlikler (ders takvimi)
 
 ### FAZ 7: Optimizasyon & Lansman (Hafta 13-14)
-- [ ] Performans optimizasyonu
-- [ ] Guvenlik denetimi
+- [x] Performans optimizasyonu
+- [x] Guvenlik denetimi
 - [ ] Yukleme testleri (40-50 kisi simulasyonu)
 - [ ] Beta test sureci
-- [ ] Uretim ortamina deploy
+- [x] Uretim ortamina deploy
 - [ ] khlustrading.net entegrasyonu
 
 ---
@@ -276,7 +276,7 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
 | Faz 5: UX | TAMAMLANDI | ██████████ 100% |
 | Faz 6: Trading Ozel | TAMAMLANDI | ██████████ 100% |
-| Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 7: Lansman | DEVAM EDIYOR | ██████░░░░ 60% |
 
 **Son Guncelleme:** 2026-03-01
 
@@ -296,6 +296,18 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 - [x] DM sistemi - Socket.io gercek zamanli mesaj iletimi
 
 ---
+
+## Tamamlanan Isler (Faz 7)
+- [x] Guvenlik: Helmet gvenlik headerlari eklendi
+- [x] Guvenlik: CORS duzeltmesi (bilinmeyen originleri reddet)
+- [x] Guvenlik: Rate limiting (genel 300/15dk, auth 20/15dk)
+- [x] Guvenlik: Socket.io JWT authentication middleware
+- [x] Guvenlik: Sifre politikasi guclendirildi (min 8 karakter)
+- [x] Guvenlik: Upload dosyalarinda X-Content-Type-Options header
+- [x] Guvenlik: JWT_SECRET uyari loglama
+- [x] Performans: ChatArea dynamic import (lazy loading)
+- [x] Performans: MessageItem React.memo optimizasyonu
+- [x] Performans: JSON body limit (1MB)
 
 ## Tamamlanan Isler (Faz 6)
 - [x] Pin'lenmis mesajlar (isPinned/pinnedAt/pinnedBy alanlari, pin/unpin API, pinned panel)
