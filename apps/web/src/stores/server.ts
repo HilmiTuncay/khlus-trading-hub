@@ -1,6 +1,27 @@
 import { create } from "zustand";
 import { api } from "@/lib/api";
 
+// Frontend permission helper
+export function getUserPermissions(server: any, userId: string): bigint {
+  if (!server || !userId) return 0n;
+  if (server.ownerId === userId) return ~0n; // Sahip = tüm yetkiler
+
+  const member = server.members?.find((m: any) => m.userId === userId);
+  if (!member) return 0n;
+
+  let perms = 0n;
+  for (const mr of member.roles || []) {
+    perms |= BigInt(mr.role?.permissions || "0");
+  }
+  return perms;
+}
+
+export function userHasPermission(server: any, userId: string, permission: bigint): boolean {
+  const perms = getUserPermissions(server, userId);
+  if ((perms & 1n) !== 0n) return true; // ADMINISTRATOR
+  return (perms & permission) === permission;
+}
+
 interface ServerState {
   servers: any[];
   activeServer: any | null;

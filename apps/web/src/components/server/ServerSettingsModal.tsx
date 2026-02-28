@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
-import { X, Copy, RefreshCw, Trash2, Check } from "lucide-react";
+import { X, Copy, RefreshCw, Trash2, Check, Shield } from "lucide-react";
+import { RoleManagementModal } from "./RoleManagementModal";
 
 interface Props {
   onClose: () => void;
@@ -20,6 +21,7 @@ export function ServerSettingsModal({ onClose }: Props) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [showRoles, setShowRoles] = useState(false);
 
   if (!activeServer) return null;
 
@@ -145,6 +147,24 @@ export function ServerSettingsModal({ onClose }: Props) {
             </span>
           </div>
         </div>
+
+        {/* Rol Yönetimi */}
+        {isOwner && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowRoles(true)}
+              className="flex w-full items-center gap-3 rounded-lg bg-surface-primary p-4 text-left hover:bg-surface-overlay transition"
+            >
+              <Shield size={20} className="text-brand" />
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Rol Yönetimi</p>
+                <p className="text-xs text-text-muted">Rolleri oluştur, düzenle ve izinleri ayarla</p>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {showRoles && <RoleManagementModal onClose={() => setShowRoles(false)} />}
 
         {/* Sunucu Silme (sadece sahip) */}
         {isOwner && (

@@ -175,10 +175,10 @@ Sunucu (Server/Guild)
 - [x] Emoji ve reaksiyon sistemi
 
 ### FAZ 3: Rol & Yetki Sistemi (Hafta 5)
-- [ ] Rol olusturma ve duzenleme
-- [ ] Izin (permission) sistemi (bitfield tabanli, Discord benzeri)
-- [ ] Kanal bazli yetki overridelari
-- [ ] Moderasyon araclari (ban, kick, mute, timeout)
+- [x] Rol olusturma ve duzenleme
+- [x] Izin (permission) sistemi (bitfield tabanli, Discord benzeri)
+- [x] Kanal bazli yetki overridelari
+- [x] Moderasyon araclari (ban, kick, mute, timeout)
 
 ### FAZ 4: Ses & Video (Hafta 6-8)
 - [ ] LiveKit entegrasyonu
@@ -272,7 +272,7 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 |-----|-------|----------|
 | Faz 1: Temel Altyapi | TAMAMLANDI | ██████████ 100% |
 | Faz 2: Sunucu & Kanal | TAMAMLANDI | ██████████ 100% |
-| Faz 3: Rol & Yetki | DEVAM EDIYOR | ██░░░░░░░░ 20% |
+| Faz 3: Rol & Yetki | TAMAMLANDI | ██████████ 100% |
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
 | Faz 5: UX | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
@@ -281,6 +281,22 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 **Son Guncelleme:** 2026-02-28
 
 ---
+
+## Tamamlanan Isler (Faz 3)
+- [x] Rol CRUD API (POST/PATCH/DELETE /api/roles)
+- [x] Rol yonetim modali (RoleManagementModal) - izin toggle UI
+- [x] Uye rol atama/kaldirma (PUT /api/roles/assign - toggle)
+- [x] Permission enforcement middleware (checkPermission, checkChannelPermission)
+- [x] Tum kanal/kategori endpointlerinde permission kontrolu (MANAGE_CHANNELS)
+- [x] Uyeyi atma (POST /api/members/:serverId/kick/:userId)
+- [x] Uyeyi banlama (POST /api/members/:serverId/ban/:userId)
+- [x] Ban kaldirma (DELETE /api/members/:serverId/ban/:userId)
+- [x] Ban listesi (GET /api/members/:serverId/bans)
+- [x] Sunucu katiliminda ban kontrolu
+- [x] Ban modeli (Prisma schema)
+- [x] MemberSidebar'da moderasyon menu (kick/ban/rol atama)
+- [x] Uye rollerinin renkli gosterimi
+- [x] Frontend permission helper (getUserPermissions, userHasPermission)
 
 ## Tamamlanan Isler (Faz 2)
 - [x] Sunucu duzenleme (PATCH /api/servers/:id) - ad degistirme

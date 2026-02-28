@@ -42,6 +42,7 @@ model Server {
   categories Category[]
   channels   Channel[]
   roles      Role[]
+  bans       Ban[]
 
   @@map("servers")
 }
@@ -151,6 +152,21 @@ model Reaction {
 
   @@unique([messageId, userId, emoji])
   @@map("reactions")
+}
+
+// ==================== Bans ====================
+model Ban {
+  id        String   @id @default(cuid())
+  serverId  String   @map("server_id")
+  userId    String   @map("user_id")
+  reason    String?
+  bannedBy  String   @map("banned_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
+  @@map("bans")
 }
 
 // ==================== Channel Permissions ====================

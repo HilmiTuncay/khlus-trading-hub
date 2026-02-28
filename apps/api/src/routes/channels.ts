@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
+import { checkPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 export const channelRouter = Router();
 channelRouter.use(authenticate);
@@ -23,17 +25,14 @@ channelRouter.post("/", async (req: Request, res: Response) => {
   try {
     const data = createChannelSchema.parse(req.body);
 
-    const member = await prisma.member.findUnique({
-      where: {
-        userId_serverId: {
-          userId: req.user!.userId,
-          serverId: data.serverId,
-        },
-      },
-    });
+    const canManage = await checkPermission(
+      req.user!.userId,
+      data.serverId,
+      Permissions.MANAGE_CHANNELS
+    );
 
-    if (!member) {
-      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    if (!canManage) {
+      return res.status(403).json({ error: "Kanal oluşturma yetkiniz yok" });
     }
 
     const channelCount = await prisma.channel.count({
@@ -91,16 +90,20 @@ channelRouter.patch("/:channelId", async (req: Request, res: Response) => {
   try {
     const channel = await prisma.channel.findUnique({
       where: { id: req.params.channelId as string },
-      include: { server: true },
     });
 
     if (!channel) {
       return res.status(404).json({ error: "Kanal bulunamadı" });
     }
 
-    // Sadece sunucu sahibi duzenleyebilir
-    if (channel.server.ownerId !== req.user!.userId) {
-      return res.status(403).json({ error: "Yetkiniz yok" });
+    const canManage = await checkPermission(
+      req.user!.userId,
+      channel.serverId,
+      Permissions.MANAGE_CHANNELS
+    );
+
+    if (!canManage) {
+      return res.status(403).json({ error: "Kanal düzenleme yetkiniz yok" });
     }
 
     const data = updateChannelSchema.parse(req.body);
@@ -129,15 +132,20 @@ channelRouter.delete("/:channelId", async (req: Request, res: Response) => {
   try {
     const channel = await prisma.channel.findUnique({
       where: { id: req.params.channelId as string },
-      include: { server: true },
     });
 
     if (!channel) {
       return res.status(404).json({ error: "Kanal bulunamadı" });
     }
 
-    if (channel.server.ownerId !== req.user!.userId) {
-      return res.status(403).json({ error: "Yetkiniz yok" });
+    const canManageChannels = await checkPermission(
+      req.user!.userId,
+      channel.serverId,
+      Permissions.MANAGE_CHANNELS
+    );
+
+    if (!canManageChannels) {
+      return res.status(403).json({ error: "Kanal silme yetkiniz yok" });
     }
 
     await prisma.$transaction(async (tx: any) => {
@@ -165,9 +173,13 @@ channelRouter.post("/categories", async (req: Request, res: Response) => {
   try {
     const data = createCategorySchema.parse(req.body);
 
-    const server = await prisma.server.findUnique({ where: { id: data.serverId } });
-    if (!server || server.ownerId !== req.user!.userId) {
-      return res.status(403).json({ error: "Yetkiniz yok" });
+    const canManageCats = await checkPermission(
+      req.user!.userId,
+      data.serverId,
+      Permissions.MANAGE_CHANNELS
+    );
+    if (!canManageCats) {
+      return res.status(403).json({ error: "Kategori oluşturma yetkiniz yok" });
     }
 
     const catCount = await prisma.category.count({ where: { serverId: data.serverId } });
@@ -195,15 +207,15 @@ channelRouter.patch("/categories/:categoryId", async (req: Request, res: Respons
   try {
     const category = await prisma.category.findUnique({
       where: { id: req.params.categoryId as string },
-      include: { server: true },
     });
 
     if (!category) {
       return res.status(404).json({ error: "Kategori bulunamadı" });
     }
 
-    if (category.server.ownerId !== req.user!.userId) {
-      return res.status(403).json({ error: "Yetkiniz yok" });
+    const canEdit = await checkPermission(req.user!.userId, category.serverId, Permissions.MANAGE_CHANNELS);
+    if (!canEdit) {
+      return res.status(403).json({ error: "Kategori düzenleme yetkiniz yok" });
     }
 
     const { name } = z.object({ name: z.string().min(1).max(100) }).parse(req.body);
@@ -228,15 +240,15 @@ channelRouter.delete("/categories/:categoryId", async (req: Request, res: Respon
   try {
     const category = await prisma.category.findUnique({
       where: { id: req.params.categoryId as string },
-      include: { server: true },
     });
 
     if (!category) {
       return res.status(404).json({ error: "Kategori bulunamadı" });
     }
 
-    if (category.server.ownerId !== req.user!.userId) {
-      return res.status(403).json({ error: "Yetkiniz yok" });
+    const canDelete = await checkPermission(req.user!.userId, category.serverId, Permissions.MANAGE_CHANNELS);
+    if (!canDelete) {
+      return res.status(403).json({ error: "Kategori silme yetkiniz yok" });
     }
 
     await prisma.$transaction(async (tx: any) => {

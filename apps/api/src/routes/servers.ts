@@ -302,6 +302,14 @@ serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Zaten bu sunucunun üyesisiniz" });
     }
 
+    // Ban kontrolü
+    const ban = await prisma.ban.findUnique({
+      where: { serverId_userId: { serverId: server.id, userId: req.user!.userId } },
+    });
+    if (ban) {
+      return res.status(403).json({ error: "Bu sunucudan banlandınız" });
+    }
+
     const member = await prisma.member.create({
       data: {
         userId: req.user!.userId,

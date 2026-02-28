@@ -184,6 +184,62 @@ class ApiClient {
     return this.request(`/api/messages/${messageId}`, { method: "DELETE" });
   }
 
+  // Roles
+  async getRoles(serverId: string) {
+    return this.request<{ roles: any[] }>(`/api/roles/${serverId}`);
+  }
+
+  async createRole(data: { serverId: string; name: string; color?: string; permissions?: string }) {
+    return this.request<{ role: any }>("/api/roles", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRole(roleId: string, data: { name?: string; color?: string; permissions?: string }) {
+    return this.request<{ role: any }>(`/api/roles/${roleId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRole(roleId: string) {
+    return this.request<{ success: boolean }>(`/api/roles/${roleId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async toggleRoleAssignment(memberId: string, roleId: string) {
+    return this.request<{ action: string }>("/api/roles/assign", {
+      method: "PUT",
+      body: JSON.stringify({ memberId, roleId }),
+    });
+  }
+
+  // Moderation
+  async kickMember(serverId: string, userId: string) {
+    return this.request<{ success: boolean }>(`/api/members/${serverId}/kick/${userId}`, {
+      method: "POST",
+    });
+  }
+
+  async banMember(serverId: string, userId: string, reason?: string) {
+    return this.request<{ success: boolean }>(`/api/members/${serverId}/ban/${userId}`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async unbanMember(serverId: string, userId: string) {
+    return this.request<{ success: boolean }>(`/api/members/${serverId}/ban/${userId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getBans(serverId: string) {
+    return this.request<{ bans: any[] }>(`/api/members/${serverId}/bans`);
+  }
+
   // Reactions
   async toggleReaction(messageId: string, emoji: string) {
     return this.request<{ reactions: Record<string, string[]> }>("/api/reactions", {
