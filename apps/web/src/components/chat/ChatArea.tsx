@@ -5,9 +5,11 @@ import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
-import { Hash, Send } from "lucide-react";
+import { Hash, Send, Paperclip, X, FileText, Image as ImageIcon, SmilePlus } from "lucide-react";
 import { MediaRoom } from "@/components/voice/MediaRoom";
 import { ChannelVoicePanel } from "@/components/voice/ChannelVoicePanel";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export function ChatArea() {
   const { activeChannel } = useServerStore();
@@ -16,8 +18,11 @@ export function ChatArea() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [inVoiceRoom, setInVoiceRoom] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevChannelRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice room durumunu kanal değiştiğinde sıfırla
   useEffect(() => {
@@ -59,12 +64,20 @@ export function ChatArea() {
       setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
     };
 
+    const handleUpdateMessage = (data: { id: string; reactions?: Record<string, string[]> }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === data.id ? { ...m, ...data } : m))
+      );
+    };
+
     socket.on("message:new", handleNewMessage);
     socket.on("message:delete", handleDeleteMessage);
+    socket.on("message:update", handleUpdateMessage);
 
     return () => {
       socket.off("message:new", handleNewMessage);
       socket.off("message:delete", handleDeleteMessage);
+      socket.off("message:update", handleUpdateMessage);
     };
   }, [activeChannel]);
 
@@ -74,15 +87,38 @@ export function ChatArea() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim() || !activeChannel) return;
+    if ((!input.trim() && pendingFiles.length === 0) || !activeChannel) return;
     const content = input.trim();
     setInput("");
+
     try {
-      await api.sendMessage(activeChannel.id, content);
+      let attachments: any[] = [];
+
+      if (pendingFiles.length > 0) {
+        setUploading(true);
+        const res = await api.uploadFiles(pendingFiles);
+        attachments = res.attachments;
+        setPendingFiles([]);
+        setUploading(false);
+      }
+
+      await api.sendMessage(activeChannel.id, content, attachments.length > 0 ? attachments : undefined);
     } catch (err) {
       console.error("Failed to send message:", err);
       setInput(content);
+      setUploading(false);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setPendingFiles((prev) => [...prev, ...files].slice(0, 5));
+    e.target.value = "";
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Kanal seçilmemiş
@@ -152,30 +188,61 @@ export function ChatArea() {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className="group mb-4 flex gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-surface-primary">
-                {msg.author?.displayName?.charAt(0)?.toUpperCase() || "?"}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-semibold text-text-primary">
-                    {msg.author?.displayName || "Bilinmeyen"}
-                  </span>
-                  <span className="text-xs text-text-muted">
-                    {new Date(msg.createdAt).toLocaleString("tr-TR")}
-                  </span>
-                </div>
-                <p className="text-text-secondary break-words">{msg.content}</p>
-              </div>
-            </div>
+            <MessageItem
+              key={msg.id}
+              msg={msg}
+              userId={user?.id}
+            />
           ))
         )}
         <div ref={bottomRef} />
       </div>
 
+      {/* Pending files preview */}
+      {pendingFiles.length > 0 && (
+        <div className="flex gap-2 border-t border-surface-overlay px-4 py-2">
+          {pendingFiles.map((file, i) => (
+            <div
+              key={i}
+              className="relative flex items-center gap-2 rounded-lg bg-surface-overlay px-3 py-2"
+            >
+              {file.type.startsWith("image/") ? (
+                <ImageIcon size={16} className="text-accent-blue" />
+              ) : (
+                <FileText size={16} className="text-text-muted" />
+              )}
+              <span className="max-w-[120px] truncate text-xs text-text-secondary">
+                {file.name}
+              </span>
+              <button
+                onClick={() => removePendingFile(i)}
+                className="rounded-full p-0.5 text-text-muted hover:bg-surface-primary hover:text-text-primary"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Mesaj girişi */}
       <div className="px-4 pb-4">
         <div className="flex items-center rounded-lg bg-surface-elevated px-4">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="mr-2 rounded-md p-2 text-text-muted transition hover:text-text-primary"
+            title="Dosya Ekle"
+          >
+            <Paperclip size={20} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.mp4,.webm"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -190,13 +257,154 @@ export function ChatArea() {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={(!input.trim() && pendingFiles.length === 0) || uploading}
             className="ml-2 rounded-md p-2 text-text-muted transition hover:text-brand disabled:opacity-30"
           >
-            <Send size={20} />
+            {uploading ? (
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            ) : (
+              <Send size={20} />
+            )}
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "🎯", "💯", "🚀"];
+
+function MessageItem({ msg, userId }: { msg: any; userId?: string }) {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleReaction = async (emoji: string) => {
+    try {
+      await api.toggleReaction(msg.id, emoji);
+      setShowEmojiPicker(false);
+    } catch (err) {
+      console.error("Failed to toggle reaction:", err);
+    }
+  };
+
+  const reactions: Record<string, string[]> = msg.reactions || {};
+  const hasReactions = Object.keys(reactions).length > 0;
+
+  return (
+    <div className="group relative mb-4 flex gap-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-surface-primary">
+        {msg.author?.displayName?.charAt(0)?.toUpperCase() || "?"}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="font-semibold text-text-primary">
+            {msg.author?.displayName || "Bilinmeyen"}
+          </span>
+          <span className="text-xs text-text-muted">
+            {new Date(msg.createdAt).toLocaleString("tr-TR")}
+          </span>
+        </div>
+        {msg.content && (
+          <p className="text-text-secondary break-words">{msg.content}</p>
+        )}
+        {/* Attachments */}
+        {msg.attachments && msg.attachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {msg.attachments.map((att: any) => (
+              <AttachmentPreview key={att.id} attachment={att} />
+            ))}
+          </div>
+        )}
+        {/* Reactions */}
+        {hasReactions && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {Object.entries(reactions).map(([emoji, userIds]) => (
+              <button
+                key={emoji}
+                onClick={() => handleReaction(emoji)}
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition ${
+                  userIds.includes(userId || "")
+                    ? "border-brand/50 bg-brand/10 text-brand"
+                    : "border-surface-overlay bg-surface-overlay text-text-secondary hover:border-brand/30"
+                }`}
+              >
+                <span>{emoji}</span>
+                <span className="font-medium">{userIds.length}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="flex items-center rounded-full border border-surface-overlay bg-surface-overlay px-2 py-0.5 text-xs text-text-muted hover:border-brand/30 hover:text-text-secondary transition"
+            >
+              <SmilePlus size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Hover actions */}
+      <div className="absolute -top-2 right-0 hidden group-hover:flex items-center gap-0.5 rounded-md bg-surface-elevated shadow-sm ring-1 ring-surface-overlay px-1 py-0.5">
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="rounded p-1 text-text-muted hover:text-text-primary hover:bg-surface-overlay transition"
+          title="Reaksiyon Ekle"
+        >
+          <SmilePlus size={16} />
+        </button>
+      </div>
+
+      {/* Emoji picker popup */}
+      {showEmojiPicker && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+          <div className="absolute right-0 top-0 z-50 rounded-lg bg-surface-primary p-2 shadow-lg ring-1 ring-surface-overlay">
+            <div className="flex gap-1">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => handleReaction(emoji)}
+                  className="rounded p-1.5 text-lg hover:bg-surface-overlay transition"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AttachmentPreview({ attachment }: { attachment: any }) {
+  const isImage = attachment.contentType?.startsWith("image/");
+  const url = attachment.url.startsWith("http") ? attachment.url : `${API_URL}${attachment.url}`;
+
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <img
+          src={url}
+          alt={attachment.filename}
+          className="max-h-60 max-w-xs rounded-lg border border-surface-overlay object-cover hover:brightness-110 transition"
+        />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 rounded-lg border border-surface-overlay bg-surface-overlay px-3 py-2 hover:bg-surface-elevated transition"
+    >
+      <FileText size={20} className="text-accent-blue" />
+      <div className="min-w-0">
+        <p className="truncate text-sm text-text-primary">{attachment.filename}</p>
+        <p className="text-xs text-text-muted">
+          {(attachment.size / 1024).toFixed(1)} KB
+        </p>
+      </div>
+    </a>
   );
 }

@@ -132,11 +132,25 @@ model Message {
   editedAt    DateTime? @map("edited_at")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
 
   @@index([channelId, createdAt])
   @@map("messages")
+}
+
+// ==================== Reactions ====================
+model Reaction {
+  id        String @id @default(cuid())
+  messageId String @map("message_id")
+  userId    String @map("user_id")
+  emoji     String // emoji karakter veya kodu
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("reactions")
 }
 
 // ==================== Channel Permissions ====================

@@ -79,3 +79,178 @@ channelRouter.get("/:channelId", async (req: Request, res: Response) => {
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
+
+// PATCH /api/channels/:channelId - Kanal guncelle
+const updateChannelSchema = z.object({
+  name: z.string().min(1).max(100).transform((v) => v.toLowerCase().replace(/\s+/g, "-")).optional(),
+  topic: z.string().max(500).optional().nullable(),
+  categoryId: z.string().optional().nullable(),
+});
+
+channelRouter.patch("/:channelId", async (req: Request, res: Response) => {
+  try {
+    const channel = await prisma.channel.findUnique({
+      where: { id: req.params.channelId as string },
+      include: { server: true },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ error: "Kanal bulunamadı" });
+    }
+
+    // Sadece sunucu sahibi duzenleyebilir
+    if (channel.server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Yetkiniz yok" });
+    }
+
+    const data = updateChannelSchema.parse(req.body);
+
+    const updated = await prisma.channel.update({
+      where: { id: channel.id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.topic !== undefined && { topic: data.topic }),
+        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+      },
+    });
+
+    res.json({ channel: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error("[Channels] Update error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// DELETE /api/channels/:channelId
+channelRouter.delete("/:channelId", async (req: Request, res: Response) => {
+  try {
+    const channel = await prisma.channel.findUnique({
+      where: { id: req.params.channelId as string },
+      include: { server: true },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ error: "Kanal bulunamadı" });
+    }
+
+    if (channel.server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Yetkiniz yok" });
+    }
+
+    await prisma.$transaction(async (tx: any) => {
+      await tx.message.deleteMany({ where: { channelId: channel.id } });
+      await tx.channelPermission.deleteMany({ where: { channelId: channel.id } });
+      await tx.channel.delete({ where: { id: channel.id } });
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Channels] Delete error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// --- Kategori Endpointleri ---
+
+const createCategorySchema = z.object({
+  serverId: z.string(),
+  name: z.string().min(1).max(100),
+});
+
+// POST /api/channels/categories
+channelRouter.post("/categories", async (req: Request, res: Response) => {
+  try {
+    const data = createCategorySchema.parse(req.body);
+
+    const server = await prisma.server.findUnique({ where: { id: data.serverId } });
+    if (!server || server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Yetkiniz yok" });
+    }
+
+    const catCount = await prisma.category.count({ where: { serverId: data.serverId } });
+
+    const category = await prisma.category.create({
+      data: {
+        serverId: data.serverId,
+        name: data.name,
+        position: catCount,
+      },
+    });
+
+    res.status(201).json({ category });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error("[Categories] Create error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// PATCH /api/channels/categories/:categoryId
+channelRouter.patch("/categories/:categoryId", async (req: Request, res: Response) => {
+  try {
+    const category = await prisma.category.findUnique({
+      where: { id: req.params.categoryId as string },
+      include: { server: true },
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "Kategori bulunamadı" });
+    }
+
+    if (category.server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Yetkiniz yok" });
+    }
+
+    const { name } = z.object({ name: z.string().min(1).max(100) }).parse(req.body);
+
+    const updated = await prisma.category.update({
+      where: { id: category.id },
+      data: { name },
+    });
+
+    res.json({ category: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error("[Categories] Update error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// DELETE /api/channels/categories/:categoryId
+channelRouter.delete("/categories/:categoryId", async (req: Request, res: Response) => {
+  try {
+    const category = await prisma.category.findUnique({
+      where: { id: req.params.categoryId as string },
+      include: { server: true },
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: "Kategori bulunamadı" });
+    }
+
+    if (category.server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Yetkiniz yok" });
+    }
+
+    await prisma.$transaction(async (tx: any) => {
+      // Kategorideki kanallari kategorisiz yap
+      await tx.channel.updateMany({
+        where: { categoryId: category.id },
+        data: { categoryId: null },
+      });
+      await tx.category.delete({ where: { id: category.id } });
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Categories] Delete error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});

@@ -164,6 +164,119 @@ serverRouter.get("/:serverId", async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/servers/:serverId - Sunucu guncelle (sadece sahip)
+const updateServerSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  iconUrl: z.string().url().optional().nullable(),
+});
+
+serverRouter.patch("/:serverId", async (req: Request, res: Response) => {
+  try {
+    const server = await prisma.server.findUnique({
+      where: { id: req.params.serverId },
+    });
+
+    if (!server) {
+      return res.status(404).json({ error: "Sunucu bulunamadı" });
+    }
+
+    if (server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Sadece sunucu sahibi düzenleyebilir" });
+    }
+
+    const data = updateServerSchema.parse(req.body);
+
+    const updated = await prisma.server.update({
+      where: { id: req.params.serverId },
+      data,
+    });
+
+    res.json({ server: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error("[Servers] Update error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// DELETE /api/servers/:serverId - Sunucu sil (sadece sahip)
+serverRouter.delete("/:serverId", async (req: Request, res: Response) => {
+  try {
+    const server = await prisma.server.findUnique({
+      where: { id: req.params.serverId },
+    });
+
+    if (!server) {
+      return res.status(404).json({ error: "Sunucu bulunamadı" });
+    }
+
+    if (server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Sadece sunucu sahibi silebilir" });
+    }
+
+    // Cascade delete: messages -> channels -> categories -> members -> roles -> server
+    await prisma.$transaction(async (tx: any) => {
+      // Delete messages in server channels
+      await tx.message.deleteMany({
+        where: { channel: { serverId: server.id } },
+      });
+      // Delete channel permissions
+      await tx.channelPermission.deleteMany({
+        where: { channel: { serverId: server.id } },
+      });
+      // Delete channels
+      await tx.channel.deleteMany({ where: { serverId: server.id } });
+      // Delete categories
+      await tx.category.deleteMany({ where: { serverId: server.id } });
+      // Delete member roles
+      await tx.memberRole.deleteMany({
+        where: { member: { serverId: server.id } },
+      });
+      // Delete members
+      await tx.member.deleteMany({ where: { serverId: server.id } });
+      // Delete roles
+      await tx.role.deleteMany({ where: { serverId: server.id } });
+      // Delete server
+      await tx.server.delete({ where: { id: server.id } });
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("[Servers] Delete error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
+// PATCH /api/servers/:serverId/invite-code - Davet kodu yenile
+serverRouter.patch("/:serverId/invite-code", async (req: Request, res: Response) => {
+  try {
+    const server = await prisma.server.findUnique({
+      where: { id: req.params.serverId },
+    });
+
+    if (!server) {
+      return res.status(404).json({ error: "Sunucu bulunamadı" });
+    }
+
+    if (server.ownerId !== req.user!.userId) {
+      return res.status(403).json({ error: "Sadece sunucu sahibi davet kodunu yenileyebilir" });
+    }
+
+    const newInviteCode = crypto.randomBytes(4).toString("hex");
+    const updated = await prisma.server.update({
+      where: { id: server.id },
+      data: { inviteCode: newInviteCode },
+    });
+
+    res.json({ inviteCode: updated.inviteCode });
+  } catch (error) {
+    console.error("[Servers] Invite code refresh error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
 // POST /api/servers/join/:inviteCode - Davet koduyla katil
 serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
   try {

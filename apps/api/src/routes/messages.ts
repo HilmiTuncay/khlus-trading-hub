@@ -7,9 +7,20 @@ import { getIO } from "../socket";
 export const messageRouter = Router();
 messageRouter.use(authenticate);
 
+const attachmentSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  filename: z.string(),
+  contentType: z.string(),
+  size: z.number(),
+});
+
 const sendMessageSchema = z.object({
   channelId: z.string(),
-  content: z.string().min(1).max(4000),
+  content: z.string().max(4000).default(""),
+  attachments: z.array(attachmentSchema).default([]),
+}).refine((data) => data.content.trim().length > 0 || data.attachments.length > 0, {
+  message: "Mesaj içeriği veya dosya eklenmeli",
 });
 
 // GET /api/messages/:channelId
@@ -32,10 +43,21 @@ messageRouter.get("/:channelId", async (req: Request, res: Response) => {
             avatarUrl: true,
           },
         },
+        reactions: true,
       },
     });
 
-    res.json({ messages: messages.reverse() });
+    // Reaksiyonları gruplanmış şekilde döndür
+    const messagesWithGroupedReactions = messages.map((msg: any) => {
+      const grouped = (msg.reactions || []).reduce((acc: Record<string, string[]>, r: any) => {
+        if (!acc[r.emoji]) acc[r.emoji] = [];
+        acc[r.emoji].push(r.userId);
+        return acc;
+      }, {});
+      return { ...msg, reactions: grouped };
+    });
+
+    res.json({ messages: messagesWithGroupedReactions.reverse() });
   } catch (error) {
     console.error("[Messages] Get error:", error);
     res.status(500).json({ error: "Sunucu hatası" });
@@ -74,6 +96,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
         channelId: data.channelId,
         authorId: req.user!.userId,
         content: data.content,
+        attachments: data.attachments.length > 0 ? data.attachments : undefined,
       },
       include: {
         author: {

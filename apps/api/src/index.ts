@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { createServer } from "http";
 import { initSocket } from "./socket";
 import { authRouter } from "./routes/auth";
@@ -10,6 +11,8 @@ import { channelRouter } from "./routes/channels";
 import { messageRouter } from "./routes/messages";
 import { memberRouter } from "./routes/members";
 import { livekitRouter } from "./routes/livekit";
+import { uploadRouter } from "./routes/uploads";
+import { reactionRouter } from "./routes/reactions";
 
 const app = express();
 const httpServer = createServer(app);
@@ -40,6 +43,9 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Static files (uploads)
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/servers", serverRouter);
@@ -47,6 +53,8 @@ app.use("/api/channels", channelRouter);
 app.use("/api/messages", messageRouter);
 app.use("/api/members", memberRouter);
 app.use("/api/livekit", livekitRouter);
+app.use("/api/uploads", uploadRouter);
+app.use("/api/reactions", reactionRouter);
 
 // Socket.io
 initSocket(httpServer, CORS_ORIGINS);

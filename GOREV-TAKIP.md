@@ -166,13 +166,13 @@ Sunucu (Server/Guild)
 - [ ] CI/CD pipeline (GitHub Actions)
 
 ### FAZ 2: Sunucu & Kanal Sistemi (Hafta 3-4)
-- [ ] Sunucu olusturma/duzenleme/silme
-- [ ] Davet linki sistemi
-- [ ] Kategori ve kanal yonetimi
-- [ ] Metin kanali - gercek zamanli mesajlasma (Socket.io)
-- [ ] Mesaj gecmisi ve sayfalama
-- [ ] Dosya/gorsel paylasimi
-- [ ] Emoji ve reaksiyon sistemi
+- [x] Sunucu olusturma/duzenleme/silme
+- [x] Davet linki sistemi
+- [x] Kategori ve kanal yonetimi
+- [x] Metin kanali - gercek zamanli mesajlasma (Socket.io)
+- [x] Mesaj gecmisi ve sayfalama
+- [x] Dosya/gorsel paylasimi
+- [x] Emoji ve reaksiyon sistemi
 
 ### FAZ 3: Rol & Yetki Sistemi (Hafta 5)
 - [ ] Rol olusturma ve duzenleme
@@ -271,16 +271,34 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz | Durum | Ilerleme |
 |-----|-------|----------|
 | Faz 1: Temel Altyapi | TAMAMLANDI | ██████████ 100% |
-| Faz 2: Sunucu & Kanal | DEVAM EDIYOR | ████░░░░░░ 40% |
+| Faz 2: Sunucu & Kanal | TAMAMLANDI | ██████████ 100% |
 | Faz 3: Rol & Yetki | DEVAM EDIYOR | ██░░░░░░░░ 20% |
-| Faz 4: Ses & Video | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
 | Faz 5: UX | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
 
-**Son Guncelleme:** 2026-02-26
+**Son Guncelleme:** 2026-02-28
 
 ---
+
+## Tamamlanan Isler (Faz 2)
+- [x] Sunucu duzenleme (PATCH /api/servers/:id) - ad degistirme
+- [x] Sunucu silme (DELETE /api/servers/:id) - cascade delete
+- [x] Sunucu ayarlari modali (ServerSettingsModal)
+- [x] ChannelSidebar dropdown menu (ayarlar, davet, kanal/kategori olusturma)
+- [x] Davet kodu kopyalama + yenileme (PATCH /api/servers/:id/invite-code)
+- [x] Kanal olusturma UI (inline, tip secimi: metin/ses/video)
+- [x] Kanal silme (DELETE /api/channels/:id)
+- [x] Kanal duzenleme (PATCH /api/channels/:id)
+- [x] Kategori olusturma/duzenleme/silme (API + UI)
+- [x] Sag tiklama context menu (kanal/kategori islemleri)
+- [x] Dosya/gorsel yukleme (multer, 10MB limit, 5 dosya)
+- [x] Mesajlarda attachment gosterimi (resim onizleme + dosya linki)
+- [x] Mesaj girisi dosya ekleme butonu (Paperclip)
+- [x] Emoji reaksiyon sistemi (Reaction modeli, toggle API)
+- [x] Mesajlarda reaksiyon gosterimi + hizli emoji secici
+- [x] Socket.io ile gercek zamanli reaksiyon guncelleme
 
 ## Tamamlanan Isler (Faz 1)
 - [x] Monorepo yapisi (npm workspaces)

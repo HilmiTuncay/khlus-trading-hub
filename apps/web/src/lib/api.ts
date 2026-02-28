@@ -83,11 +83,63 @@ class ApiClient {
     });
   }
 
+  async updateServer(serverId: string, data: { name?: string; iconUrl?: string | null }) {
+    return this.request<{ server: any }>(`/api/servers/${serverId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteServer(serverId: string) {
+    return this.request<{ success: boolean }>(`/api/servers/${serverId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async regenerateInviteCode(serverId: string) {
+    return this.request<{ inviteCode: string }>(`/api/servers/${serverId}/invite-code`, {
+      method: "PATCH",
+    });
+  }
+
   // Channels
   async createChannel(data: { serverId: string; name: string; type: string; categoryId?: string }) {
     return this.request<{ channel: any }>("/api/channels", {
       method: "POST",
       body: JSON.stringify(data),
+    });
+  }
+
+  async updateChannel(channelId: string, data: { name?: string; topic?: string | null; categoryId?: string | null }) {
+    return this.request<{ channel: any }>(`/api/channels/${channelId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteChannel(channelId: string) {
+    return this.request<{ success: boolean }>(`/api/channels/${channelId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async createCategory(data: { serverId: string; name: string }) {
+    return this.request<{ category: any }>("/api/channels/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCategory(categoryId: string, name: string) {
+    return this.request<{ category: any }>(`/api/channels/categories/${categoryId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteCategory(categoryId: string) {
+    return this.request<{ success: boolean }>(`/api/channels/categories/${categoryId}`, {
+      method: "DELETE",
     });
   }
 
@@ -97,15 +149,47 @@ class ApiClient {
     return this.request<{ messages: any[] }>(`/api/messages/${channelId}${params}`);
   }
 
-  async sendMessage(channelId: string, content: string) {
+  async sendMessage(channelId: string, content: string, attachments?: any[]) {
     return this.request<{ message: any }>("/api/messages", {
       method: "POST",
-      body: JSON.stringify({ channelId, content }),
+      body: JSON.stringify({ channelId, content, attachments }),
     });
+  }
+
+  async uploadFiles(files: File[]): Promise<{ attachments: any[] }> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers["Authorization"] = `Bearer ${this.token}`;
+    }
+
+    const res = await fetch(`${API_URL}/api/uploads`, {
+      method: "POST",
+      headers,
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: "Upload hatası" }));
+      throw new Error(error.error || `HTTP ${res.status}`);
+    }
+
+    return res.json();
   }
 
   async deleteMessage(messageId: string) {
     return this.request(`/api/messages/${messageId}`, { method: "DELETE" });
+  }
+
+  // Reactions
+  async toggleReaction(messageId: string, emoji: string) {
+    return this.request<{ reactions: Record<string, string[]> }>("/api/reactions", {
+      method: "PUT",
+      body: JSON.stringify({ messageId, emoji }),
+    });
   }
 
   // LiveKit
