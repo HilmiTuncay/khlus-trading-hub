@@ -190,6 +190,40 @@ authRouter.get("/me", authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/auth/profile - Profil güncelle
+const updateProfileSchema = z.object({
+  displayName: z.string().min(1).max(64).optional(),
+  avatarUrl: z.string().url().optional().nullable(),
+  status: z.enum(["online", "idle", "dnd", "offline"]).optional(),
+});
+
+authRouter.patch("/profile", authenticate, async (req: Request, res: Response) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+
+    const user = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data,
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        status: true,
+      },
+    });
+
+    res.json({ user });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    console.error("[Auth] Profile update error:", error);
+    res.status(500).json({ error: "Sunucu hatası" });
+  }
+});
+
 // POST /api/auth/logout
 authRouter.post("/logout", authenticate, async (req: Request, res: Response) => {
   await prisma.user.update({

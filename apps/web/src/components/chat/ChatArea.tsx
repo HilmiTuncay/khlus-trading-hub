@@ -5,14 +5,14 @@ import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
-import { Hash, Send, Paperclip, X, FileText, Image as ImageIcon, SmilePlus } from "lucide-react";
+import { Hash, Send, Paperclip, X, FileText, Image as ImageIcon, SmilePlus, Search } from "lucide-react";
 import { MediaRoom } from "@/components/voice/MediaRoom";
 import { ChannelVoicePanel } from "@/components/voice/ChannelVoicePanel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export function ChatArea() {
-  const { activeChannel } = useServerStore();
+  const { activeChannel, activeServer } = useServerStore();
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -20,6 +20,10 @@ export function ChatArea() {
   const [inVoiceRoom, setInVoiceRoom] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [searching, setSearching] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevChannelRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -166,12 +170,91 @@ export function ChatArea() {
         {activeChannel.topic && (
           <>
             <div className="mx-3 h-6 w-px bg-surface-overlay" />
-            <p className="truncate text-sm text-text-muted">
+            <p className="hidden sm:block truncate text-sm text-text-muted flex-1">
               {activeChannel.topic}
             </p>
           </>
         )}
+        <div className="ml-auto flex items-center">
+          {showSearch ? (
+            <div className="flex items-center gap-1">
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && searchQuery.trim() && activeServer) {
+                    setSearching(true);
+                    try {
+                      const res = await api.search(searchQuery.trim(), activeServer.id);
+                      setSearchResults(res);
+                    } catch (err) {
+                      console.error("Search failed:", err);
+                    } finally {
+                      setSearching(false);
+                    }
+                  }
+                  if (e.key === "Escape") {
+                    setShowSearch(false);
+                    setSearchQuery("");
+                    setSearchResults(null);
+                  }
+                }}
+                placeholder="Mesaj ara..."
+                className="w-40 rounded-md bg-surface-elevated px-3 py-1.5 text-sm text-text-primary outline-none placeholder:text-text-muted"
+                autoFocus
+              />
+              <button
+                onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults(null); }}
+                className="rounded p-1 text-text-muted hover:text-text-primary"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSearch(true)}
+              className="rounded p-1.5 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
+            >
+              <Search size={18} />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Arama sonuçları */}
+      {searchResults && (
+        <div className="border-b border-surface-overlay bg-surface-secondary p-3 max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-text-muted uppercase">Arama Sonuçları</p>
+            <button onClick={() => setSearchResults(null)} className="text-text-muted hover:text-text-primary">
+              <X size={14} />
+            </button>
+          </div>
+          {searching && <p className="text-xs text-text-muted">Aranıyor...</p>}
+          {searchResults.messages?.length === 0 && searchResults.members?.length === 0 && (
+            <p className="text-xs text-text-muted">Sonuç bulunamadı</p>
+          )}
+          {searchResults.messages?.map((msg: any) => (
+            <div key={msg.id} className="mb-2 rounded-md bg-surface-primary p-2">
+              <div className="flex items-baseline gap-2 mb-0.5">
+                <span className="text-xs font-semibold text-text-primary">{msg.author?.displayName}</span>
+                <span className="text-[10px] text-text-muted">#{msg.channel?.name}</span>
+                <span className="text-[10px] text-text-muted">{new Date(msg.createdAt).toLocaleDateString("tr-TR")}</span>
+              </div>
+              <p className="text-xs text-text-secondary break-words">{msg.content}</p>
+            </div>
+          ))}
+          {searchResults.members?.map((m: any) => (
+            <div key={m.id} className="flex items-center gap-2 rounded-md bg-surface-primary p-2 mb-1">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-surface-primary">
+                {m.user?.displayName?.charAt(0)?.toUpperCase()}
+              </div>
+              <span className="text-xs text-text-primary">{m.user?.displayName}</span>
+              <span className="text-[10px] text-text-muted">@{m.user?.username}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Mesajlar */}
       <div className="flex-1 overflow-y-auto px-4 py-4">

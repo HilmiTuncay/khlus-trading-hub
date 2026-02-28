@@ -26,7 +26,7 @@ export function MemberSidebar() {
   const offline = members.filter((m: any) => m.user?.status === "offline");
 
   return (
-    <div className="hidden w-60 flex-col bg-surface-secondary lg:flex">
+    <div className="flex w-60 flex-col bg-surface-secondary">
       <div className="flex-1 overflow-y-auto px-2 py-4">
         {/* Online members */}
         {online.length > 0 && (

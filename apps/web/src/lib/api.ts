@@ -61,6 +61,13 @@ class ApiClient {
     return this.request<{ token: string }>("/api/auth/refresh", { method: "POST" });
   }
 
+  async updateProfile(data: { displayName?: string; status?: string }) {
+    return this.request<{ user: any }>("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
   // Servers
   async getServers() {
     return this.request<{ servers: any[] }>("/api/servers");
@@ -246,6 +253,13 @@ class ApiClient {
       method: "PUT",
       body: JSON.stringify({ messageId, emoji }),
     });
+  }
+
+  // Search
+  async search(query: string, serverId: string, type: "messages" | "members" | "all" = "all") {
+    return this.request<{ messages?: any[]; members?: any[] }>(
+      `/api/search?query=${encodeURIComponent(query)}&serverId=${serverId}&type=${type}`
+    );
   }
 
   // LiveKit

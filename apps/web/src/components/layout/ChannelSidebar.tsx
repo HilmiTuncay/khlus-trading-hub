@@ -7,7 +7,7 @@ import { useVoiceStore } from "@/stores/voice";
 import { ServerSettingsModal } from "@/components/server/ServerSettingsModal";
 import {
   Hash, Volume2, Video, ChevronDown, LogOut, Settings,
-  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X,
+  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -368,22 +368,7 @@ export function ChannelSidebar() {
       )}
 
       {/* Kullanıcı paneli */}
-      <div className="flex items-center gap-2 border-t border-surface-primary bg-surface-primary/50 px-2 py-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-bold text-surface-primary">
-          {user?.displayName?.charAt(0)?.toUpperCase() || "?"}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-semibold">{user?.displayName}</p>
-          <p className="truncate text-xs text-text-muted">@{user?.username}</p>
-        </div>
-        <button
-          onClick={logout}
-          className="rounded p-1 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
-          title="Çıkış Yap"
-        >
-          <LogOut size={16} />
-        </button>
-      </div>
+      <UserPanel />
     </div>
   );
 }
@@ -503,6 +488,129 @@ function ChannelItem({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_OPTIONS = [
+  { value: "online", label: "Çevrimiçi", color: "bg-accent-green" },
+  { value: "idle", label: "Boşta", color: "bg-accent-yellow" },
+  { value: "dnd", label: "Rahatsız Etmeyin", color: "bg-accent-red" },
+  { value: "offline", label: "Görünmez", color: "bg-text-muted" },
+];
+
+function UserPanel() {
+  const { user, logout, updateProfile } = useAuthStore();
+  const [showPopup, setShowPopup] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+
+  const handleStatusChange = async (status: string) => {
+    try {
+      await updateProfile({ status });
+    } catch (err: any) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
+  const handleNameSave = async () => {
+    if (!nameInput.trim()) return;
+    try {
+      await updateProfile({ displayName: nameInput.trim() });
+      setEditingName(false);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const currentStatus = STATUS_OPTIONS.find((s) => s.value === user?.status) || STATUS_OPTIONS[0];
+
+  return (
+    <div className="relative">
+      {showPopup && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setShowPopup(false); setEditingName(false); }} />
+          <div className="absolute bottom-12 left-2 right-2 z-50 rounded-lg bg-surface-primary p-3 shadow-lg ring-1 ring-surface-overlay">
+            {/* Profil header */}
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand text-lg font-bold text-surface-primary">
+                {user?.displayName?.charAt(0)?.toUpperCase() || "?"}
+              </div>
+              <div className="min-w-0 flex-1">
+                {editingName ? (
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="w-full rounded bg-surface-secondary px-2 py-1 text-sm text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleNameSave();
+                      if (e.key === "Escape") setEditingName(false);
+                    }}
+                    onBlur={handleNameSave}
+                  />
+                ) : (
+                  <p
+                    className="cursor-pointer truncate text-sm font-semibold hover:underline"
+                    onClick={() => { setEditingName(true); setNameInput(user?.displayName || ""); }}
+                  >
+                    {user?.displayName}
+                  </p>
+                )}
+                <p className="truncate text-xs text-text-muted">@{user?.username}</p>
+              </div>
+            </div>
+
+            {/* Durum seçimi */}
+            <div className="mb-2">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase text-text-muted">Durum</p>
+              <div className="space-y-0.5">
+                {STATUS_OPTIONS.map((s) => (
+                  <button
+                    key={s.value}
+                    onClick={() => handleStatusChange(s.value)}
+                    className={clsx(
+                      "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs transition",
+                      user?.status === s.value
+                        ? "bg-surface-overlay text-text-primary"
+                        : "text-text-secondary hover:bg-surface-overlay/50"
+                    )}
+                  >
+                    <div className={clsx("h-2.5 w-2.5 rounded-full", s.color)} />
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="h-px bg-surface-overlay my-2" />
+
+            <button
+              onClick={() => { setShowPopup(false); logout(); }}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-accent-red hover:bg-surface-overlay"
+            >
+              <LogOut size={14} />
+              Çıkış Yap
+            </button>
+          </div>
+        </>
+      )}
+
+      <button
+        onClick={() => setShowPopup(!showPopup)}
+        className="flex w-full items-center gap-2 border-t border-surface-primary bg-surface-primary/50 px-2 py-2 hover:bg-surface-overlay/50 transition"
+      >
+        <div className="relative">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-bold text-surface-primary">
+            {user?.displayName?.charAt(0)?.toUpperCase() || "?"}
+          </div>
+          <div className={clsx("absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-secondary", currentStatus.color)} />
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <p className="truncate text-sm font-semibold">{user?.displayName}</p>
+          <p className="truncate text-xs text-text-muted">{currentStatus.label}</p>
+        </div>
+      </button>
     </div>
   );
 }

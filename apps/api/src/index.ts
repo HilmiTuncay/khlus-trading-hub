@@ -14,6 +14,7 @@ import { livekitRouter } from "./routes/livekit";
 import { uploadRouter } from "./routes/uploads";
 import { reactionRouter } from "./routes/reactions";
 import { roleRouter } from "./routes/roles";
+import { searchRouter } from "./routes/search";
 
 const app = express();
 const httpServer = createServer(app);
@@ -57,6 +58,7 @@ app.use("/api/livekit", livekitRouter);
 app.use("/api/uploads", uploadRouter);
 app.use("/api/reactions", reactionRouter);
 app.use("/api/roles", roleRouter);
+app.use("/api/search", searchRouter);
 
 // Socket.io
 initSocket(httpServer, CORS_ORIGINS);

@@ -191,13 +191,13 @@ Sunucu (Server/Guild)
 - [ ] Oda kapasitesi yonetimi
 
 ### FAZ 5: Kullanici Deneyimi (Hafta 9-10)
-- [ ] Responsive tasarim (mobil uyumlu)
+- [x] Responsive tasarim (mobil uyumlu)
 - [ ] Karanlik/aydinlik tema
-- [ ] Bildirim sistemi
-- [ ] Kullanici profili ve ayarlar
+- [x] Bildirim sistemi (okunmamis mesaj gosterimi - temel)
+- [x] Kullanici profili ve ayarlar
 - [ ] Dogrudan mesaj (DM) sistemi
-- [ ] Cevrimici/cevimdisi durum gosterimi
-- [ ] Arama fonksiyonu (mesaj, kullanici, kanal)
+- [x] Cevrimici/cevimdisi durum gosterimi
+- [x] Arama fonksiyonu (mesaj, kullanici, kanal)
 
 ### FAZ 6: Trading Ozel Ozellikler (Hafta 11-12)
 - [ ] Trading sinyal kanali (ozel format)
@@ -274,11 +274,20 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 2: Sunucu & Kanal | TAMAMLANDI | ██████████ 100% |
 | Faz 3: Rol & Yetki | TAMAMLANDI | ██████████ 100% |
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
-| Faz 5: UX | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 5: UX | DEVAM EDIYOR | ███████░░░ 70% |
 | Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
 
 **Son Guncelleme:** 2026-02-28
+
+## Tamamlanan Isler (Faz 5)
+- [x] Responsive layout (mobil sidebar toggle, hamburger menu, ust bar)
+- [x] Kullanici profil duzenleme (displayName degistirme)
+- [x] Durum degistirme (online/idle/dnd/offline) - UI popup + API
+- [x] Profil guncelleme API (PATCH /api/auth/profile)
+- [x] Kullanici paneli yeniden tasarimi (durum gostergesi, popup menu)
+- [x] Arama API (GET /api/search - mesaj ve uye arama)
+- [x] Arama UI (ChatArea header'da search bar + sonuc paneli)
 
 ---
 
