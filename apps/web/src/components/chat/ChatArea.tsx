@@ -65,7 +65,11 @@ export function ChatArea() {
     prevChannelRef.current = activeChannel.id;
 
     const handleNewMessage = (message: any) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        // Duplicate kontrolü (API yanıtından zaten eklenmiş olabilir)
+        if (prev.some((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
     };
 
     const handleDeleteMessage = (data: { messageId: string }) => {
@@ -110,7 +114,15 @@ export function ChatArea() {
         setUploading(false);
       }
 
-      await api.sendMessage(activeChannel.id, content, attachments.length > 0 ? attachments : undefined);
+      const res = await api.sendMessage(activeChannel.id, content, attachments.length > 0 ? attachments : undefined);
+      // API yanıtından mesajı direkt ekle (Socket.io bağlantısı olmasa bile görünsün)
+      if (res.message) {
+        setMessages((prev) => {
+          // Duplicate kontrolü (Socket.io'dan da gelebilir)
+          if (prev.some((m) => m.id === res.message.id)) return prev;
+          return [...prev, res.message];
+        });
+      }
     } catch (err) {
       console.error("Failed to send message:", err);
       setInput(content);

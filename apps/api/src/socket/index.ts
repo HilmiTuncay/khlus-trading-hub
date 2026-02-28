@@ -20,7 +20,19 @@ const socketVoiceState = new Map<string, { channelId: string; userId: string }>(
 export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
   io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: corsOrigins,
+      origin: (origin, callback) => {
+        if (!origin || corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          // Vercel preview URL'lerini kabul et
+          const isVercelPreview = corsOrigins.some((o) => {
+            const domain = o.replace("https://", "").replace("http://", "");
+            const baseName = domain.split(".")[0];
+            return origin.includes(baseName) && origin.includes("vercel.app");
+          });
+          callback(null, isVercelPreview);
+        }
+      },
       credentials: true,
     },
   });
