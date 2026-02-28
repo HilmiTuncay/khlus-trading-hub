@@ -20,11 +20,17 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${this.token}`;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const res = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers,
       credentials: "include",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ error: "Bir hata olustu" }));
@@ -191,6 +197,45 @@ class ApiClient {
     return this.request(`/api/messages/${messageId}`, { method: "DELETE" });
   }
 
+  async togglePin(messageId: string) {
+    return this.request<{ message: any }>(`/api/messages/${messageId}/pin`, {
+      method: "PUT",
+    });
+  }
+
+  async getPinnedMessages(channelId: string) {
+    return this.request<{ messages: any[] }>(`/api/messages/${channelId}/pinned`);
+  }
+
+  async createPoll(data: { channelId: string; question: string; options: string[] }) {
+    return this.request<{ message: any }>("/api/messages/poll", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async votePoll(messageId: string, optionIndex: number) {
+    return this.request<{ message: any }>(`/api/messages/${messageId}/vote`, {
+      method: "PUT",
+      body: JSON.stringify({ optionIndex }),
+    });
+  }
+
+  async sendSignal(data: {
+    channelId: string;
+    direction: "long" | "short";
+    symbol: string;
+    entry: string;
+    targets: string[];
+    stopLoss: string;
+    notes?: string;
+  }) {
+    return this.request<{ message: any }>("/api/messages/signal", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
   // Roles
   async getRoles(serverId: string) {
     return this.request<{ roles: any[] }>(`/api/roles/${serverId}`);
@@ -284,6 +329,31 @@ class ApiClient {
     return this.request<{ messages?: any[]; members?: any[] }>(
       `/api/search?query=${encodeURIComponent(query)}&serverId=${serverId}&type=${type}`
     );
+  }
+
+  // Events
+  async getEvents(serverId: string) {
+    return this.request<{ events: any[] }>(`/api/events/${serverId}`);
+  }
+
+  async createEvent(data: {
+    serverId: string;
+    title: string;
+    description?: string;
+    channelId?: string;
+    startAt: string;
+    endAt?: string;
+  }) {
+    return this.request<{ event: any }>("/api/events", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEvent(eventId: string) {
+    return this.request<{ success: boolean }>(`/api/events/${eventId}`, {
+      method: "DELETE",
+    });
   }
 
   // LiveKit

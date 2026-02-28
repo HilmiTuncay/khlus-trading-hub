@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { useVoiceStore } from "@/stores/voice";
 import { ServerSettingsModal } from "@/components/server/ServerSettingsModal";
 import {
   Hash, Volume2, Video, ChevronDown, LogOut, Settings,
-  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User, Sun, Moon,
+  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User, Sun, Moon, Calendar,
 } from "lucide-react";
+import { api } from "@/lib/api";
 import { useThemeStore } from "@/stores/theme";
 import clsx from "clsx";
 
@@ -34,6 +35,7 @@ export function ChannelSidebar() {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editCategoryName, setEditCategoryName] = useState("");
   const [contextMenu, setContextMenu] = useState<{ type: "channel" | "category"; id: string; x: number; y: number } | null>(null);
+  const [showEvents, setShowEvents] = useState(false);
 
   if (!activeServer) {
     return (
@@ -143,6 +145,16 @@ export function ChannelSidebar() {
                 <UserPlus size={16} />
                 Davet Kodunu Kopyala
               </button>
+              <button
+                onClick={() => {
+                  setShowDropdown(false);
+                  setShowEvents(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-text-secondary hover:bg-surface-overlay hover:text-text-primary"
+              >
+                <Calendar size={16} />
+                Etkinlikler
+              </button>
               {isOwner && (
                 <>
                   <button
@@ -185,6 +197,10 @@ export function ChannelSidebar() {
 
       {showSettings && (
         <ServerSettingsModal onClose={() => setShowSettings(false)} />
+      )}
+
+      {showEvents && activeServer && (
+        <EventsPanel serverId={activeServer.id} onClose={() => setShowEvents(false)} />
       )}
 
       {/* Kanal listesi */}
@@ -621,6 +637,191 @@ function UserPanel() {
           <p className="truncate text-xs text-text-muted">{currentStatus.label}</p>
         </div>
       </button>
+    </div>
+  );
+}
+
+function EventsPanel({ serverId, onClose }: { serverId: string; onClose: () => void }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      const res = await api.getEvents(serverId);
+      setEvents(res.events);
+    } catch (err) {
+      console.error("Failed to load events:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!title.trim() || !startDate || !startTime) return;
+    setCreating(true);
+    try {
+      await api.createEvent({
+        serverId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        startAt: new Date(`${startDate}T${startTime}`).toISOString(),
+      });
+      setTitle("");
+      setDescription("");
+      setStartDate("");
+      setStartTime("");
+      setShowForm(false);
+      await loadEvents();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (eventId: string) => {
+    if (!confirm("Bu etkinliği silmek istediğinize emin misiniz?")) return;
+    try {
+      await api.deleteEvent(eventId);
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const now = new Date();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="w-full max-w-md rounded-xl bg-surface-secondary p-6 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <Calendar size={20} className="text-brand" />
+            Etkinlikler
+          </h2>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Etkinlik oluştur */}
+        {showForm ? (
+          <div className="mb-4 rounded-lg bg-surface-primary p-3">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Etkinlik başlığı"
+              className="mb-2 w-full rounded-lg bg-surface-elevated px-3 py-2 text-sm text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
+              autoFocus
+            />
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Açıklama (opsiyonel)"
+              className="mb-2 w-full rounded-lg bg-surface-elevated px-3 py-2 text-sm text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
+            />
+            <div className="flex gap-2 mb-3">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="flex-1 rounded-lg bg-surface-elevated px-3 py-2 text-sm text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
+              />
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-28 rounded-lg bg-surface-elevated px-3 py-2 text-sm text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowForm(false)}
+                className="flex-1 rounded-lg bg-surface-overlay px-3 py-2 text-xs text-text-secondary hover:bg-surface-elevated"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={!title.trim() || !startDate || !startTime || creating}
+                className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-surface-primary hover:bg-brand-dark disabled:opacity-50"
+              >
+                {creating ? "Oluşturuluyor..." : "Oluştur"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowForm(true)}
+            className="mb-4 flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-surface-primary hover:bg-brand-dark"
+          >
+            <Plus size={16} />
+            Etkinlik Oluştur
+          </button>
+        )}
+
+        {/* Etkinlik listesi */}
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            </div>
+          ) : events.length === 0 ? (
+            <p className="py-8 text-center text-sm text-text-muted">Henüz etkinlik yok</p>
+          ) : (
+            events.map((event) => {
+              const eventDate = new Date(event.startAt);
+              const isPast = eventDate < now;
+
+              return (
+                <div
+                  key={event.id}
+                  className={clsx(
+                    "rounded-lg border p-3",
+                    isPast ? "border-surface-overlay opacity-60" : "border-brand/30 bg-brand/5"
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">{event.title}</p>
+                      {event.description && (
+                        <p className="mt-0.5 text-xs text-text-muted">{event.description}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDelete(event.id)}
+                      className="shrink-0 rounded p-1 text-text-muted hover:text-accent-red"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-text-secondary">
+                    <Calendar size={12} className="inline mr-1" />
+                    {eventDate.toLocaleDateString("tr-TR", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                    {" "}
+                    {eventDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                    {isPast && <span className="ml-2 text-accent-red">(Geçmiş)</span>}
+                  </p>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
     </div>
   );
 }

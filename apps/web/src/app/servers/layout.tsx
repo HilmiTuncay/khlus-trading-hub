@@ -62,16 +62,17 @@ export default function ServersLayout({
     if (!user) return;
 
     const socket = connectSocket();
+    if (!socket) return;
 
-    socket.on("voice:channel_users", (data) => {
+    socket.on("voice:channel_users", (data: any) => {
       useVoiceStore.getState().setChannelUsers(data.channelId, data.users);
     });
 
-    socket.on("voice:user_joined", (data) => {
+    socket.on("voice:user_joined", (data: any) => {
       useVoiceStore.getState().addChannelUser(data.channelId, data.user);
     });
 
-    socket.on("voice:user_left", (data) => {
+    socket.on("voice:user_left", (data: any) => {
       useVoiceStore.getState().removeChannelUser(data.channelId, data.userId);
     });
 

@@ -200,11 +200,11 @@ Sunucu (Server/Guild)
 - [x] Arama fonksiyonu (mesaj, kullanici, kanal)
 
 ### FAZ 6: Trading Ozel Ozellikler (Hafta 11-12)
-- [ ] Trading sinyal kanali (ozel format)
-- [ ] Grafik/chart paylasim destegi
-- [ ] Pin'lenmis mesajlar
-- [ ] Anket/oylama sistemi
-- [ ] Planlanan etkinlikler (ders takvimi)
+- [x] Trading sinyal kanali (ozel format)
+- [x] Grafik/chart paylasim destegi
+- [x] Pin'lenmis mesajlar
+- [x] Anket/oylama sistemi
+- [x] Planlanan etkinlikler (ders takvimi)
 
 ### FAZ 7: Optimizasyon & Lansman (Hafta 13-14)
 - [ ] Performans optimizasyonu
@@ -275,10 +275,10 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 3: Rol & Yetki | TAMAMLANDI | ██████████ 100% |
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
 | Faz 5: UX | TAMAMLANDI | ██████████ 100% |
-| Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 6: Trading Ozel | TAMAMLANDI | ██████████ 100% |
 | Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
 
-**Son Guncelleme:** 2026-02-28
+**Son Guncelleme:** 2026-03-01
 
 ## Tamamlanan Isler (Faz 5)
 - [x] Responsive layout (mobil sidebar toggle, hamburger menu, ust bar)
@@ -296,6 +296,16 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 - [x] DM sistemi - Socket.io gercek zamanli mesaj iletimi
 
 ---
+
+## Tamamlanan Isler (Faz 6)
+- [x] Pin'lenmis mesajlar (isPinned/pinnedAt/pinnedBy alanlari, pin/unpin API, pinned panel)
+- [x] Trading sinyal kanali (long/short, sembol, giris/hedef/stoploss, sinyal karti UI)
+- [x] Anket/oylama sistemi (poll olusturma, oy verme, canli sonuc gosterimi)
+- [x] Grafik/chart paylasim (URL otomatik link, goruntu preview, TradingView embed)
+- [x] Etkinlik takvimi (Event modeli, CRUD API, etkinlik paneli modali)
+- [x] Mesaj silme butonu (hover action)
+- [x] API istek timeout (10sn, Vercel deploy fix)
+- [x] SSR guvenlik (auth store + socket.io typeof window check)
 
 ## Tamamlanan Isler (Faz 3)
 - [x] Rol CRUD API (POST/PATCH/DELETE /api/roles)

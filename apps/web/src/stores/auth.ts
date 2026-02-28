@@ -53,6 +53,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   loadUser: async () => {
+    if (typeof window === "undefined") {
+      set({ isLoading: false });
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
       if (!token) {

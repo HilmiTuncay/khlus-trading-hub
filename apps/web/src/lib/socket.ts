@@ -6,6 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
 export function getSocket() {
+  if (typeof window === "undefined") return null;
   if (!socket) {
     socket = io(API_URL, {
       withCredentials: true,
@@ -17,6 +18,7 @@ export function getSocket() {
 
 export function connectSocket() {
   const s = getSocket();
+  if (!s) return null as any;
   if (!s.connected) {
     s.connect();
   }
