@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { createServer } from "http";
 import { initSocket } from "./socket";
+import { prisma } from "./db/prisma";
 import { authRouter } from "./routes/auth";
 import { serverRouter } from "./routes/servers";
 import { channelRouter } from "./routes/channels";
@@ -32,9 +33,16 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
 console.log("[CORS] İzin verilen originler:", CORS_ORIGINS);
 
 // Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
-app.get("/health", (_req, res) => {
+app.get("/health", async (_req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  let dbStatus = "unknown";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = "connected";
+  } catch (err: any) {
+    dbStatus = `error: ${err.message}`;
+  }
+  res.json({ status: "ok", db: dbStatus, timestamp: new Date().toISOString() });
 });
 
 // Güvenlik headers
