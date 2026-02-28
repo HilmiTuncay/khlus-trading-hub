@@ -26,12 +26,22 @@ const httpServer = createServer(app);
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
 const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .split(",")
-  .map((s) => s.trim());
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+console.log("[CORS] İzin verilen originler:", CORS_ORIGINS);
+
+// Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
+app.get("/health", (_req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Güvenlik headers
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false,
     contentSecurityPolicy: false,
   })
 );
@@ -40,11 +50,22 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Origin yoksa (curl, server-to-server) veya listede varsa izin ver
       if (!origin || CORS_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn(`[CORS] Blocked origin: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
+        // Vercel preview URL'lerini de kabul et (aynı proje)
+        const isVercelPreview = CORS_ORIGINS.some((o) => {
+          const domain = o.replace("https://", "").replace("http://", "");
+          const baseName = domain.split(".")[0]; // ör: khlus-trading-hub
+          return origin.includes(baseName) && origin.includes("vercel.app");
+        });
+        if (isVercelPreview) {
+          callback(null, true);
+        } else {
+          console.warn(`[CORS] Reddedilen origin: ${origin} | İzin verilenler: ${CORS_ORIGINS.join(", ")}`);
+          callback(null, false); // 500 yerine sessizce reddet
+        }
       }
     },
     credentials: true,
@@ -72,11 +93,6 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
-
-// Health check
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
 
 // Static files (uploads) - Content-Disposition header ile
 app.use(
@@ -106,5 +122,7 @@ app.use("/api/events", eventRouter);
 initSocket(httpServer, CORS_ORIGINS);
 
 httpServer.listen(PORT, () => {
-  console.log(`[API] Server running on http://localhost:${PORT}`);
+  console.log(`[API] Server running on port ${PORT}`);
+  console.log(`[API] CORS origins: ${CORS_ORIGINS.join(", ")}`);
+  console.log(`[API] NODE_ENV: ${process.env.NODE_ENV || "development"}`);
 });

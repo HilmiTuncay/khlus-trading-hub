@@ -88,7 +88,10 @@ class ApiClient {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
-      const res = await fetch(`${API_URL}/health`, { signal: controller.signal });
+      const res = await fetch(`${API_URL}/health`, {
+        signal: controller.signal,
+        // credentials yok - /health wildcard CORS kullanıyor
+      });
       clearTimeout(timeoutId);
       this.serverAwake = res.ok;
       return res.ok;
