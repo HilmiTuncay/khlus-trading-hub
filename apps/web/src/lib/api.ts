@@ -1,15 +1,34 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+const MAX_RETRIES = 3;
+const INITIAL_TIMEOUT = 30000; // 30s - Render cold start için yeterli
+const RETRY_DELAYS = [1000, 3000, 5000]; // 1s, 3s, 5s bekleme
+
 class ApiClient {
   private token: string | null = null;
+  private serverAwake = false;
 
   setToken(token: string | null) {
     this.token = token;
   }
 
+  private translateError(err: unknown): string {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return "Sunucu yanıt vermiyor. Sunucu uyanıyor olabilir, lütfen tekrar deneyin.";
+    }
+    if (err instanceof TypeError && (err.message === "Failed to fetch" || err.message === "NetworkError when attempting to fetch resource.")) {
+      return "Sunucuya bağlanılamıyor. İnternet bağlantınızı kontrol edin.";
+    }
+    if (err instanceof Error) {
+      return err.message;
+    }
+    return "Beklenmeyen bir hata oluştu";
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retries = MAX_RETRIES
   ): Promise<T> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -20,24 +39,67 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${this.token}`;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let lastError: unknown;
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-      credentials: "include",
-      signal: controller.signal,
-    });
+    for (let attempt = 0; attempt < retries; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), INITIAL_TIMEOUT);
 
-    clearTimeout(timeoutId);
+      try {
+        const res = await fetch(`${API_URL}${endpoint}`, {
+          ...options,
+          headers,
+          credentials: "include",
+          signal: controller.signal,
+        });
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: "Bir hata olustu" }));
-      throw new Error(error.error || `HTTP ${res.status}`);
+        clearTimeout(timeoutId);
+        this.serverAwake = true;
+
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({ error: "Bir hata oluştu" }));
+          throw new Error(error.error || `HTTP ${res.status}`);
+        }
+
+        return res.json();
+      } catch (err: unknown) {
+        clearTimeout(timeoutId);
+        lastError = err;
+
+        // HTTP hataları (4xx, 5xx) retry yapma - bunlar sunucudan geliyor
+        if (err instanceof Error && err.message.startsWith("HTTP ")) throw err;
+        // Sunucu yanıt verdiyse (JSON parse hatası hariç) retry yapma
+        if (err instanceof Error && !["Failed to fetch", "NetworkError when attempting to fetch resource.", "AbortError"].some(m => err.message.includes(m) || (err as any).name === m)) {
+          throw new Error(this.translateError(err));
+        }
+
+        // Son deneme değilse bekle ve tekrar dene
+        if (attempt < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt] || 5000));
+        }
+      }
     }
 
-    return res.json();
+    throw new Error(this.translateError(lastError));
+  }
+
+  // Sunucu uyanık mı kontrol et (login/register öncesi)
+  async healthCheck(): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch(`${API_URL}/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      this.serverAwake = res.ok;
+      return res.ok;
+    } catch {
+      this.serverAwake = false;
+      return false;
+    }
+  }
+
+  isServerAwake() {
+    return this.serverAwake;
   }
 
   // Auth
@@ -178,19 +240,30 @@ class ApiClient {
       headers["Authorization"] = `Bearer ${this.token}`;
     }
 
-    const res = await fetch(`${API_URL}/api/uploads`, {
-      method: "POST",
-      headers,
-      body: formData,
-      credentials: "include",
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // Upload için 60s
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: "Upload hatası" }));
-      throw new Error(error.error || `HTTP ${res.status}`);
+    try {
+      const res = await fetch(`${API_URL}/api/uploads`, {
+        method: "POST",
+        headers,
+        body: formData,
+        credentials: "include",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Upload hatası" }));
+        throw new Error(error.error || `HTTP ${res.status}`);
+      }
+
+      return res.json();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      throw new Error(this.translateError(err));
     }
-
-    return res.json();
   }
 
   async deleteMessage(messageId: string) {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState<"checking" | "online" | "offline">("checking");
+
+  // Sayfa açılınca sunucu durumunu kontrol et
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const ok = await api.healthCheck();
+      if (!cancelled) {
+        setServerStatus(ok ? "online" : "offline");
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, []);
+
+  const retryConnection = async () => {
+    setServerStatus("checking");
+    const ok = await api.healthCheck();
+    setServerStatus(ok ? "online" : "offline");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +55,31 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-brand">Khlus Trading Hub</h1>
           <p className="mt-2 text-text-secondary">Hesabınıza giriş yapın</p>
         </div>
+
+        {/* Sunucu durumu */}
+        {serverStatus === "checking" && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-500/10 p-3 text-sm text-yellow-400">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-yellow-400 border-t-transparent" />
+            Sunucuya bağlanılıyor... (İlk bağlantı 30 saniye sürebilir)
+          </div>
+        )}
+        {serverStatus === "offline" && (
+          <div className="mb-4 rounded-lg bg-accent-red/10 p-3 text-sm text-accent-red">
+            <p>Sunucuya ulaşılamıyor.</p>
+            <button
+              onClick={retryConnection}
+              className="mt-1 text-xs underline hover:no-underline"
+            >
+              Tekrar dene
+            </button>
+          </div>
+        )}
+        {serverStatus === "online" && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-500/10 p-3 text-sm text-green-400">
+            <div className="h-2 w-2 rounded-full bg-green-400" />
+            Sunucu bağlantısı aktif
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
