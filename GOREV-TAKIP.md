@@ -192,10 +192,10 @@ Sunucu (Server/Guild)
 
 ### FAZ 5: Kullanici Deneyimi (Hafta 9-10)
 - [x] Responsive tasarim (mobil uyumlu)
-- [ ] Karanlik/aydinlik tema
+- [x] Karanlik/aydinlik tema
 - [x] Bildirim sistemi (okunmamis mesaj gosterimi - temel)
 - [x] Kullanici profili ve ayarlar
-- [ ] Dogrudan mesaj (DM) sistemi
+- [x] Dogrudan mesaj (DM) sistemi
 - [x] Cevrimici/cevimdisi durum gosterimi
 - [x] Arama fonksiyonu (mesaj, kullanici, kanal)
 
@@ -274,7 +274,7 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 2: Sunucu & Kanal | TAMAMLANDI | ██████████ 100% |
 | Faz 3: Rol & Yetki | TAMAMLANDI | ██████████ 100% |
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
-| Faz 5: UX | DEVAM EDIYOR | ███████░░░ 70% |
+| Faz 5: UX | TAMAMLANDI | ██████████ 100% |
 | Faz 6: Trading Ozel | BEKLIYOR | ░░░░░░░░░░ 0% |
 | Faz 7: Lansman | BEKLIYOR | ░░░░░░░░░░ 0% |
 
@@ -288,6 +288,12 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 - [x] Kullanici paneli yeniden tasarimi (durum gostergesi, popup menu)
 - [x] Arama API (GET /api/search - mesaj ve uye arama)
 - [x] Arama UI (ChatArea header'da search bar + sonuc paneli)
+- [x] Karanlik/aydinlik tema (CSS custom properties, tema store, toggle)
+- [x] DM sistemi - Backend (Conversation, DirectMessage modelleri + API route'lari)
+- [x] DM sistemi - Frontend (DMPanel, konusma listesi, mesajlasma UI)
+- [x] DM sistemi - Entegrasyon (ServerSidebar DM butonu, layout DM gorunumu)
+- [x] DM sistemi - Uye sidebar'dan "Mesaj Gonder" secenegi
+- [x] DM sistemi - Socket.io gercek zamanli mesaj iletimi
 
 ---
 

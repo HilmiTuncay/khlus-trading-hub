@@ -15,6 +15,7 @@ import { uploadRouter } from "./routes/uploads";
 import { reactionRouter } from "./routes/reactions";
 import { roleRouter } from "./routes/roles";
 import { searchRouter } from "./routes/search";
+import { dmRouter } from "./routes/dm";
 
 const app = express();
 const httpServer = createServer(app);
@@ -59,6 +60,7 @@ app.use("/api/uploads", uploadRouter);
 app.use("/api/reactions", reactionRouter);
 app.use("/api/roles", roleRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/dm", dmRouter);
 
 // Socket.io
 initSocket(httpServer, CORS_ORIGINS);

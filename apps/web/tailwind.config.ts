@@ -6,23 +6,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Discord-inspired dark theme
         brand: {
-          DEFAULT: "#F59E0B", // Trading gold
-          light: "#FCD34D",
-          dark: "#D97706",
+          DEFAULT: "var(--color-brand)",
+          light: "var(--color-brand-light)",
+          dark: "var(--color-brand-dark)",
         },
         surface: {
-          primary: "#111214",
-          secondary: "#1a1b1e",
-          tertiary: "#232428",
-          elevated: "#2b2d31",
-          overlay: "#313338",
+          primary: "var(--color-surface-primary)",
+          secondary: "var(--color-surface-secondary)",
+          tertiary: "var(--color-surface-tertiary)",
+          elevated: "var(--color-surface-elevated)",
+          overlay: "var(--color-surface-overlay)",
         },
         text: {
-          primary: "#f2f3f5",
-          secondary: "#b5bac1",
-          muted: "#6d6f78",
+          primary: "var(--color-text-primary)",
+          secondary: "var(--color-text-secondary)",
+          muted: "var(--color-text-muted)",
         },
         accent: {
           green: "#23a559",

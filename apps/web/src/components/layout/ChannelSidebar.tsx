@@ -7,8 +7,9 @@ import { useVoiceStore } from "@/stores/voice";
 import { ServerSettingsModal } from "@/components/server/ServerSettingsModal";
 import {
   Hash, Volume2, Video, ChevronDown, LogOut, Settings,
-  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User,
+  UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User, Sun, Moon,
 } from "lucide-react";
+import { useThemeStore } from "@/stores/theme";
 import clsx from "clsx";
 
 const channelIcons = {
@@ -501,6 +502,7 @@ const STATUS_OPTIONS = [
 
 function UserPanel() {
   const { user, logout, updateProfile } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
   const [showPopup, setShowPopup] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -584,6 +586,14 @@ function UserPanel() {
             </div>
 
             <div className="h-px bg-surface-overlay my-2" />
+
+            <button
+              onClick={toggleTheme}
+              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay/50 hover:text-text-primary"
+            >
+              {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+              {theme === "dark" ? "Aydınlık Tema" : "Karanlık Tema"}
+            </button>
 
             <button
               onClick={() => { setShowPopup(false); logout(); }}

@@ -9,7 +9,8 @@ import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
-import { Menu, Users, X } from "lucide-react";
+import { DMPanel } from "@/components/chat/DMPanel";
+import { Menu, Users, X, MessageSquare } from "lucide-react";
 
 export default function ServersLayout({
   children,
@@ -18,9 +19,11 @@ export default function ServersLayout({
 }) {
   const router = useRouter();
   const { user, isLoading, loadUser } = useAuthStore();
-  const { activeServer, activeChannel } = useServerStore();
+  const { activeServer, activeChannel, setActiveServer } = useServerStore();
   const [showSidebar, setShowSidebar] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showDM, setShowDM] = useState(false);
+  const [dmTargetUserId, setDmTargetUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadUser();
@@ -36,6 +39,23 @@ export default function ServersLayout({
   useEffect(() => {
     setShowSidebar(false);
   }, [activeChannel?.id]);
+
+  const handleDMClick = () => {
+    setShowDM(true);
+    setDmTargetUserId(null);
+  };
+
+  const handleServerClick = (serverId: string) => {
+    setShowDM(false);
+    setDmTargetUserId(null);
+    setActiveServer(serverId);
+  };
+
+  const handleStartDM = (userId: string) => {
+    setShowDM(true);
+    setDmTargetUserId(userId);
+    setShowMembers(false);
+  };
 
   // Socket bağlantısı ve voice event dinleme
   useEffect(() => {
@@ -85,10 +105,19 @@ export default function ServersLayout({
     <div className="flex h-screen overflow-hidden">
       {/* Desktop: her zaman göster. Mobil: toggle ile */}
 
-      {/* Server + Channel Sidebar */}
+      {/* Server + Channel Sidebar / DM Panel */}
       <div className="hidden md:flex">
-        <ServerSidebar />
-        <ChannelSidebar />
+        <ServerSidebar isDMActive={showDM} onDMClick={handleDMClick} />
+        {showDM ? (
+          <div className="flex h-full w-60 flex-col bg-surface-secondary">
+            <DMPanel
+              onClose={() => setShowDM(false)}
+              initialTargetUserId={dmTargetUserId}
+            />
+          </div>
+        ) : (
+          <ChannelSidebar />
+        )}
       </div>
 
       {/* Mobil sidebar overlay */}
@@ -99,8 +128,17 @@ export default function ServersLayout({
             onClick={() => setShowSidebar(false)}
           />
           <div className="fixed left-0 top-0 z-50 flex h-full md:hidden">
-            <ServerSidebar />
-            <ChannelSidebar />
+            <ServerSidebar isDMActive={showDM} onDMClick={handleDMClick} />
+            {showDM ? (
+              <div className="flex h-full w-60 flex-col bg-surface-secondary">
+                <DMPanel
+                  onClose={() => setShowDM(false)}
+                  initialTargetUserId={dmTargetUserId}
+                />
+              </div>
+            ) : (
+              <ChannelSidebar />
+            )}
           </div>
         </>
       )}
@@ -116,36 +154,53 @@ export default function ServersLayout({
             <Menu size={20} />
           </button>
           <span className="flex-1 truncate text-sm font-semibold">
-            {activeServer?.name || "Khlus Trading Hub"}
-            {activeChannel && (
-              <span className="text-text-muted font-normal"> / #{activeChannel.name}</span>
+            {showDM ? "Direkt Mesajlar" : (
+              <>
+                {activeServer?.name || "Khlus Trading Hub"}
+                {activeChannel && (
+                  <span className="text-text-muted font-normal"> / #{activeChannel.name}</span>
+                )}
+              </>
             )}
           </span>
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="rounded p-1.5 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
-          >
-            <Users size={20} />
-          </button>
+          {!showDM && (
+            <button
+              onClick={() => setShowMembers(!showMembers)}
+              className="rounded p-1.5 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
+            >
+              <Users size={20} />
+            </button>
+          )}
         </div>
 
-        {children}
+        {showDM ? (
+          <div className="flex flex-1 items-center justify-center text-text-muted">
+            <div className="text-center">
+              <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Soldaki panelden bir konuşma seçin</p>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
       </div>
 
-      {/* Member Sidebar: Desktop */}
-      <div className="hidden lg:flex">
-        <MemberSidebar />
-      </div>
+      {/* Member Sidebar: Desktop (DM modunda gizle) */}
+      {!showDM && (
+        <div className="hidden lg:flex">
+          <MemberSidebar onStartDM={handleStartDM} />
+        </div>
+      )}
 
       {/* Mobil member sidebar overlay */}
-      {showMembers && (
+      {showMembers && !showDM && (
         <>
           <div
             className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             onClick={() => setShowMembers(false)}
           />
           <div className="fixed right-0 top-0 z-50 h-full lg:hidden">
-            <MemberSidebar />
+            <MemberSidebar onStartDM={handleStartDM} />
           </div>
         </>
       )}

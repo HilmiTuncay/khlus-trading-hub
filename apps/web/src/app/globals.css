@@ -3,11 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  /* Dark tema (varsayılan) */
+  :root {
+    --color-brand: #F59E0B;
+    --color-brand-light: #FCD34D;
+    --color-brand-dark: #D97706;
+
+    --color-surface-primary: #111214;
+    --color-surface-secondary: #1a1b1e;
+    --color-surface-tertiary: #232428;
+    --color-surface-elevated: #2b2d31;
+    --color-surface-overlay: #313338;
+
+    --color-text-primary: #f2f3f5;
+    --color-text-secondary: #b5bac1;
+    --color-text-muted: #6d6f78;
+  }
+
+  /* Light tema */
+  .light {
+    --color-brand: #D97706;
+    --color-brand-light: #F59E0B;
+    --color-brand-dark: #B45309;
+
+    --color-surface-primary: #ffffff;
+    --color-surface-secondary: #f2f3f5;
+    --color-surface-tertiary: #e3e5e8;
+    --color-surface-elevated: #ebedef;
+    --color-surface-overlay: #d3d6db;
+
+    --color-text-primary: #060607;
+    --color-text-secondary: #4e5058;
+    --color-text-muted: #80848e;
+  }
+
   * {
     box-sizing: border-box;
   }
   body {
     @apply bg-surface-primary text-text-primary;
+    transition: background-color 0.2s, color 0.2s;
   }
   ::-webkit-scrollbar {
     width: 8px;

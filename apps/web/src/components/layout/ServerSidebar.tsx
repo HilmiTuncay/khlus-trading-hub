@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useServerStore } from "@/stores/server";
-import { Plus, LogIn } from "lucide-react";
+import { Plus, LogIn, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
-export function ServerSidebar() {
+interface ServerSidebarProps {
+  isDMActive?: boolean;
+  onDMClick?: () => void;
+}
+
+export function ServerSidebar({ isDMActive, onDMClick }: ServerSidebarProps = {}) {
   const { servers, activeServer, loadServers, setActiveServer, createServer, joinServer } =
     useServerStore();
   const [showModal, setShowModal] = useState<"create" | "join" | null>(null);
@@ -37,6 +42,24 @@ export function ServerSidebar() {
 
   return (
     <div className="flex h-full w-[72px] flex-col items-center gap-2 bg-surface-primary py-3">
+      {/* DM button */}
+      <button
+        onClick={onDMClick}
+        className={clsx(
+          "relative flex h-12 w-12 items-center justify-center rounded-[24px] bg-surface-elevated text-text-primary transition-all hover:rounded-[16px] hover:bg-accent-blue hover:text-white",
+          isDMActive && "rounded-[16px] bg-accent-blue text-white"
+        )}
+        title="Direkt Mesajlar"
+      >
+        {isDMActive && (
+          <div className="absolute left-0 h-10 w-1 -translate-x-[20px] rounded-r-full bg-text-primary" />
+        )}
+        <MessageSquare size={22} />
+      </button>
+
+      {/* Divider */}
+      <div className="mx-auto h-0.5 w-8 rounded-full bg-surface-overlay" />
+
       {/* Server list */}
       {servers.map((server) => (
         <button

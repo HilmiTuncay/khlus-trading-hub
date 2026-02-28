@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
-import { Shield, UserX, Ban, MoreVertical } from "lucide-react";
+import { Shield, UserX, Ban, MoreVertical, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
 const statusColors: Record<string, string> = {
@@ -14,7 +14,11 @@ const statusColors: Record<string, string> = {
   offline: "bg-text-muted",
 };
 
-export function MemberSidebar() {
+interface MemberSidebarProps {
+  onStartDM?: (userId: string) => void;
+}
+
+export function MemberSidebar({ onStartDM }: MemberSidebarProps = {}) {
   const { activeServer, refreshActiveServer } = useServerStore();
   const { user } = useAuthStore();
 
@@ -37,6 +41,7 @@ export function MemberSidebar() {
             currentUserId={user?.id}
             isOwner={isOwner}
             onRefresh={refreshActiveServer}
+            onStartDM={onStartDM}
           />
         )}
 
@@ -49,6 +54,7 @@ export function MemberSidebar() {
             currentUserId={user?.id}
             isOwner={isOwner}
             onRefresh={refreshActiveServer}
+            onStartDM={onStartDM}
           />
         )}
       </div>
@@ -63,6 +69,7 @@ function MemberGroup({
   currentUserId,
   isOwner,
   onRefresh,
+  onStartDM,
 }: {
   title: string;
   members: any[];
@@ -70,6 +77,7 @@ function MemberGroup({
   currentUserId?: string;
   isOwner: boolean;
   onRefresh: () => Promise<void>;
+  onStartDM?: (userId: string) => void;
 }) {
   return (
     <div className="mb-4">
@@ -84,6 +92,7 @@ function MemberGroup({
           currentUserId={currentUserId}
           isOwner={isOwner}
           onRefresh={onRefresh}
+          onStartDM={onStartDM}
         />
       ))}
     </div>
@@ -96,12 +105,14 @@ function MemberItem({
   currentUserId,
   isOwner,
   onRefresh,
+  onStartDM,
 }: {
   member: any;
   server: any;
   currentUserId?: string;
   isOwner: boolean;
   onRefresh: () => Promise<void>;
+  onStartDM?: (userId: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -154,7 +165,7 @@ function MemberItem({
     <div className="group relative">
       <div
         className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-surface-elevated cursor-pointer"
-        onClick={() => canModerate && setShowMenu(!showMenu)}
+        onClick={() => (!isSelf) && setShowMenu(!showMenu)}
       >
         <div className="relative">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-overlay text-xs font-bold">
@@ -194,48 +205,69 @@ function MemberItem({
       </div>
 
       {/* Context menu */}
-      {showMenu && canModerate && (
+      {showMenu && !isSelf && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute right-0 top-full z-50 w-48 rounded-lg bg-surface-primary p-1.5 shadow-lg ring-1 ring-surface-overlay">
-            {/* Roller */}
-            {allRoles.length > 0 && (
-              <>
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase text-text-muted">Roller</p>
-                {allRoles.map((role: any) => (
-                  <button
-                    key={role.id}
-                    onClick={() => handleToggleRole(role.id)}
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary"
-                  >
-                    <div
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: role.color }}
-                    />
-                    <span className="flex-1 text-left">{role.name}</span>
-                    {memberRoleIds.includes(role.id) && (
-                      <span className="text-accent-green text-[10px]">✓</span>
-                    )}
-                  </button>
-                ))}
-                <div className="my-1 h-px bg-surface-overlay" />
-              </>
+            {/* Mesaj Gönder */}
+            {onStartDM && (
+              <button
+                onClick={() => {
+                  onStartDM(member.userId);
+                  setShowMenu(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary"
+              >
+                <MessageSquare size={14} />
+                Mesaj Gönder
+              </button>
             )}
 
-            <button
-              onClick={handleKick}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-accent-red hover:bg-surface-overlay"
-            >
-              <UserX size={14} />
-              Sunucudan At
-            </button>
-            <button
-              onClick={handleBan}
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-accent-red hover:bg-surface-overlay"
-            >
-              <Ban size={14} />
-              Banla
-            </button>
+            {/* Moderasyon seçenekleri */}
+            {canModerate && (
+              <>
+                {(onStartDM || allRoles.length > 0) && <div className="my-1 h-px bg-surface-overlay" />}
+
+                {/* Roller */}
+                {allRoles.length > 0 && (
+                  <>
+                    <p className="px-2 py-1 text-[10px] font-semibold uppercase text-text-muted">Roller</p>
+                    {allRoles.map((role: any) => (
+                      <button
+                        key={role.id}
+                        onClick={() => handleToggleRole(role.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary"
+                      >
+                        <div
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: role.color }}
+                        />
+                        <span className="flex-1 text-left">{role.name}</span>
+                        {memberRoleIds.includes(role.id) && (
+                          <span className="text-accent-green text-[10px]">✓</span>
+                        )}
+                      </button>
+                    ))}
+                    <div className="my-1 h-px bg-surface-overlay" />
+                  </>
+                )}
+
+                <button
+                  onClick={handleKick}
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-accent-red hover:bg-surface-overlay"
+                >
+                  <UserX size={14} />
+                  Sunucudan At
+                </button>
+                <button
+                  onClick={handleBan}
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-accent-red hover:bg-surface-overlay"
+                >
+                  <Ban size={14} />
+                  Banla
+                </button>
+              </>
+            )}
           </div>
         </>
       )}

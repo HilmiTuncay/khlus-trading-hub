@@ -255,6 +255,30 @@ class ApiClient {
     });
   }
 
+  // DM
+  async getConversations() {
+    return this.request<{ conversations: any[] }>("/api/dm/conversations");
+  }
+
+  async createConversation(targetUserId: string) {
+    return this.request<{ conversation: { id: string } }>("/api/dm/conversations", {
+      method: "POST",
+      body: JSON.stringify({ targetUserId }),
+    });
+  }
+
+  async getDMMessages(conversationId: string, cursor?: string) {
+    const params = cursor ? `?cursor=${cursor}` : "";
+    return this.request<{ messages: any[] }>(`/api/dm/${conversationId}/messages${params}`);
+  }
+
+  async sendDM(conversationId: string, content: string) {
+    return this.request<{ message: any }>(`/api/dm/${conversationId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
+  }
+
   // Search
   async search(query: string, serverId: string, type: "messages" | "members" | "all" = "all") {
     return this.request<{ messages?: any[]; members?: any[] }>(
