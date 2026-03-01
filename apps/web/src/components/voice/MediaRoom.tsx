@@ -176,12 +176,14 @@ export function RoomContent({
   const room = useRoomContext();
 
   const [focusedTrack, setFocusedTrack] = useState<any>(null);
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isCamOn, setIsCamOn] = useState(channelType === "video");
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showScreenShareModal, setShowScreenShareModal] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  // LiveKit'in gerçek durumundan türet — state senkronizasyon bozulmasını engeller
+  const isMicOn = localParticipant.isMicrophoneEnabled;
+  const isCamOn = localParticipant.isCameraEnabled;
+  const isScreenSharing = localParticipant.isScreenShareEnabled;
 
   // Ekran paylaşımı varsa otomatik odakla
   const screenShareTrack = useMemo(
@@ -217,18 +219,15 @@ export function RoomContent({
 
   const toggleMic = async () => {
     await localParticipant.setMicrophoneEnabled(!isMicOn);
-    setIsMicOn(!isMicOn);
   };
 
   const toggleCam = async () => {
     await localParticipant.setCameraEnabled(!isCamOn);
-    setIsCamOn(!isCamOn);
   };
 
   const toggleScreenShare = () => {
     if (isScreenSharing) {
       localParticipant.setScreenShareEnabled(false);
-      setIsScreenSharing(false);
     } else {
       setShowScreenShareModal(true);
     }
@@ -246,7 +245,6 @@ export function RoomContent({
         },
         contentHint: "detail",
       });
-      setIsScreenSharing(true);
     } catch {
       // Kullanıcı iptal etti
     }

@@ -213,7 +213,7 @@ export default function ServersLayout({
         token={livekitToken}
         serverUrl={livekitUrl}
         connect={true}
-        video={activeVoiceChannel.type === "video"}
+        video={false}
         audio={true}
         onDisconnected={() => useVoiceStore.getState().disconnectVoice()}
         onConnected={() => {
