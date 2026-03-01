@@ -95,11 +95,14 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="register-email" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Email
             </label>
             <input
+              id="register-email"
+              name="email"
               type="email"
+              autoComplete="email"
               value={form.email}
               onChange={update("email")}
               className="w-full rounded-lg bg-surface-primary px-4 py-3 text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
@@ -108,11 +111,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="register-username" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Kullanıcı Adı
             </label>
             <input
+              id="register-username"
+              name="username"
               type="text"
+              autoComplete="username"
               value={form.username}
               onChange={update("username")}
               placeholder="sadece harf, rakam ve _"
@@ -122,11 +128,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="register-displayName" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Görünen Ad
             </label>
             <input
+              id="register-displayName"
+              name="displayName"
               type="text"
+              autoComplete="name"
               value={form.displayName}
               onChange={update("displayName")}
               className="w-full rounded-lg bg-surface-primary px-4 py-3 text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
@@ -135,11 +144,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="register-password" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Şifre
             </label>
             <input
+              id="register-password"
+              name="password"
               type="password"
+              autoComplete="new-password"
               value={form.password}
               onChange={update("password")}
               minLength={8}

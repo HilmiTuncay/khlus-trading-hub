@@ -89,11 +89,14 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Email
             </label>
             <input
+              id="login-email"
+              name="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg bg-surface-primary px-4 py-3 text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"
@@ -102,11 +105,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
+            <label htmlFor="login-password" className="mb-1.5 block text-xs font-semibold uppercase text-text-secondary">
               Şifre
             </label>
             <input
+              id="login-password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg bg-surface-primary px-4 py-3 text-text-primary outline-none ring-1 ring-surface-overlay focus:ring-brand"

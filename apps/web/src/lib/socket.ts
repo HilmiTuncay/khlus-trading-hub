@@ -1,9 +1,11 @@
 import { io, Socket } from "socket.io-client";
 import type { ServerToClientEvents, ClientToServerEvents } from "@khlus/shared";
+import { api } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+let isRefreshing = false;
 
 export type ConnectionStatusType = "connected" | "connecting" | "disconnected";
 type ConnectionStatusListener = (status: ConnectionStatusType) => void;
@@ -32,9 +34,9 @@ export function getSocket() {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,       // 30sn'den 5sn'ye düşürüldü - daha hızlı reconnect
-      transports: ["websocket", "polling"], // WebSocket öncelikli - polling'i atla
-      timeout: 20000,                   // Bağlantı timeout'u
+      reconnectionDelayMax: 5000,
+      transports: ["websocket", "polling"],
+      timeout: 20000,
     });
 
     socket.on("connect", () => {
@@ -46,14 +48,40 @@ export function getSocket() {
     });
 
     socket.io.on("reconnect_attempt", () => {
+      // Her reconnect'te güncel token'ı kullan
+      const freshToken = localStorage.getItem("token");
+      if (freshToken && socket) {
+        socket.auth = { token: freshToken };
+      }
       notifyStatus("connecting");
     });
 
-    socket.on("connect_error", (err) => {
-      // Auth hatası alırsa reconnect'i durdur (sonsuz döngü önleme)
-      if (err.message === "Authentication required" || err.message === "Invalid token") {
+    socket.on("connect_error", async (err) => {
+      if (err.message === "Authentication required") {
         socket?.disconnect();
         notifyStatus("disconnected");
+        return;
+      }
+
+      // Token geçersiz/expired — refresh dene
+      if (err.message === "Invalid token" && !isRefreshing) {
+        isRefreshing = true;
+        try {
+          const res = await api.refreshToken();
+          api.setToken(res.token);
+          localStorage.setItem("token", res.token);
+          // Yeni token ile tekrar bağlan
+          if (socket) {
+            socket.auth = { token: res.token };
+            socket.connect();
+          }
+        } catch {
+          // Refresh de başarısız — disconnect
+          socket?.disconnect();
+          notifyStatus("disconnected");
+        } finally {
+          isRefreshing = false;
+        }
       }
     });
   }
@@ -64,6 +92,11 @@ export function connectSocket() {
   const s = getSocket();
   if (!s) return null as any;
   if (!s.connected) {
+    // Bağlanmadan önce token'ı güncelle
+    const freshToken = localStorage.getItem("token");
+    if (freshToken) {
+      s.auth = { token: freshToken };
+    }
     s.connect();
   }
   return s;
@@ -78,6 +111,7 @@ export function disconnectSocket() {
 export function resetSocket() {
   if (socket) {
     socket.removeAllListeners();
+    socket.io.removeAllListeners();
     socket.disconnect();
     socket = null;
   }

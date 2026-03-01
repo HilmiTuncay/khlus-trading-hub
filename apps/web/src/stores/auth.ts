@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/lib/api";
+import { resetSocket } from "@/lib/socket";
 
 interface AuthState {
   user: any | null;
@@ -48,6 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     api.setToken(null);
     localStorage.removeItem("token");
+    resetSocket();
     set({ user: null, token: null });
   },
 
@@ -73,9 +75,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (err: any) {
       const msg = err?.message || "";
       if (msg.includes("401") || msg.includes("403")) {
-        localStorage.removeItem("token");
-        api.setToken(null);
-        set({ user: null, token: null, isLoading: false, loadError: null });
+        // Token expired — refresh dene
+        try {
+          const refreshRes = await api.refreshToken();
+          api.setToken(refreshRes.token);
+          localStorage.setItem("token", refreshRes.token);
+          // Yeni token ile tekrar dene
+          const res = await api.getMe();
+          set({ user: res.user, token: refreshRes.token, isLoading: false, hasLoadedOnce: true, loadError: null });
+          // Socket'i yeni token ile yeniden başlat
+          resetSocket();
+        } catch {
+          // Refresh de başarısız — tam logout
+          localStorage.removeItem("token");
+          api.setToken(null);
+          resetSocket();
+          set({ user: null, token: null, isLoading: false, loadError: null });
+        }
       } else {
         // Network hatası — token'i koru, retry imkanı sun
         set({ isLoading: false, loadError: msg || "Bağlantı hatası" });

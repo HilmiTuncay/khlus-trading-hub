@@ -61,9 +61,9 @@ function clearLoginAttempts(email: string) {
 }
 
 function generateTokens(userId: string, email: string) {
-  const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "1h" });
+  const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "7d" });
   const refreshToken = jwt.sign({ userId, email }, JWT_REFRESH_SECRET, {
-    expiresIn: "7d",
+    expiresIn: "30d",
   });
   return { token, refreshToken };
 }
