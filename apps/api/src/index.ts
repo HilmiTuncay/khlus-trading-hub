@@ -34,15 +34,10 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
 logger.info({ origins: CORS_ORIGINS }, "CORS izin verilen originler");
 
 // Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
-app.get("/health", async (_req, res) => {
+// DB sorgusu kaldırıldı — cold start'ı 2-5sn yavaşlatıyordu
+app.get("/health", (_req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  try {
-    const { prisma } = await import("./db/prisma");
-    await prisma.$queryRawUnsafe("SELECT 1");
-    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString() });
-  } catch (err: any) {
-    res.status(200).json({ status: "ok", db: "error", dbError: err.message, timestamp: new Date().toISOString() });
-  }
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Güvenlik headers
@@ -149,4 +144,19 @@ initSocket(httpServer, CORS_ORIGINS);
 
 httpServer.listen(PORT, () => {
   logger.info({ port: PORT, origins: CORS_ORIGINS, env: process.env.NODE_ENV || "development" }, `API sunucusu port ${PORT} üzerinde çalışıyor`);
+
+  // Render free tier keep-alive: 14dk'da bir self-ping (15dk inaktivite uyku eşiği)
+  const KEEP_ALIVE_URL = process.env.RENDER_EXTERNAL_URL || process.env.API_PUBLIC_URL;
+  if (KEEP_ALIVE_URL) {
+    const KEEP_ALIVE_INTERVAL = 14 * 60 * 1000; // 14 dakika
+    setInterval(async () => {
+      try {
+        await fetch(`${KEEP_ALIVE_URL}/health`);
+        logger.debug("Keep-alive ping gönderildi");
+      } catch {
+        // Sessizce devam et
+      }
+    }, KEEP_ALIVE_INTERVAL);
+    logger.info({ url: KEEP_ALIVE_URL, intervalMin: 14 }, "Keep-alive aktif");
+  }
 });

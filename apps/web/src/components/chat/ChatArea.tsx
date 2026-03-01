@@ -247,17 +247,12 @@ export function ChatArea() {
         channelName={activeChannel.name}
         channelType={activeChannel.type}
         onJoin={async () => {
-          try {
-            const res = await api.getLivekitToken(activeChannel.id);
-            useVoiceStore.getState().connectToVoice(
-              { id: activeChannel.id, name: activeChannel.name, type: activeChannel.type, serverId: activeServer!.id },
-              res.token,
-              res.livekitUrl
-            );
-          } catch (err: any) {
-            console.error("Failed to join voice channel:", err);
-            alert(err.message || "Baglanti hatasi");
-          }
+          const res = await api.getLivekitToken(activeChannel.id);
+          useVoiceStore.getState().connectToVoice(
+            { id: activeChannel.id, name: activeChannel.name, type: activeChannel.type, serverId: activeServer!.id },
+            res.token,
+            res.livekitUrl
+          );
         }}
       />
     );

@@ -1,8 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const MAX_RETRIES = 3;
-const INITIAL_TIMEOUT = 30000; // 30s - Render cold start için yeterli
-const RETRY_DELAYS = [1000, 3000, 5000]; // 1s, 3s, 5s bekleme
+const INITIAL_TIMEOUT = 15000; // 15s - keep-alive sayesinde sunucu genelde uyanık
+const RETRY_DELAYS = [1000, 2000, 3000]; // 1s, 2s, 3s - daha kısa aralıklar
 
 class ApiClient {
   private token: string | null = null;
@@ -87,7 +87,7 @@ class ApiClient {
   async healthCheck(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s yeterli
       const res = await fetch(`${API_URL}/health`, {
         signal: controller.signal,
         // credentials yok - /health wildcard CORS kullanıyor
@@ -103,6 +103,23 @@ class ApiClient {
 
   isServerAwake() {
     return this.serverAwake;
+  }
+
+  // Sunucuyu sıcak tutmak için periyodik ping (kullanıcı sitedeyken)
+  private keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+
+  startKeepAlive() {
+    if (this.keepAliveTimer) return;
+    this.keepAliveTimer = setInterval(() => {
+      this.healthCheck().catch(() => {});
+    }, 4 * 60 * 1000); // 4 dakikada bir
+  }
+
+  stopKeepAlive() {
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
   }
 
   // Auth

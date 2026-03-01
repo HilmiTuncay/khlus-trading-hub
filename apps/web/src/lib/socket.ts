@@ -32,7 +32,9 @@ export function getSocket() {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 30000,
+      reconnectionDelayMax: 5000,       // 30sn'den 5sn'ye düşürüldü - daha hızlı reconnect
+      transports: ["websocket", "polling"], // WebSocket öncelikli - polling'i atla
+      timeout: 20000,                   // Bağlantı timeout'u
     });
 
     socket.on("connect", () => {

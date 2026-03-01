@@ -54,6 +54,12 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
       },
       credentials: true,
     },
+    // Cloud hosting için optimize edilmiş ayarlar
+    pingInterval: 25000,    // 25sn - sunucu her 25sn'de ping atar
+    pingTimeout: 30000,     // 30sn - client'ın cevap vermesi için süre (cloud gecikmeleri için geniş)
+    transports: ["websocket", "polling"], // WebSocket öncelikli
+    allowUpgrades: true,
+    upgradeTimeout: 10000,
   });
 
   // Socket authentication middleware — anonim bağlantıyı reddet

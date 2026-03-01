@@ -18,9 +18,11 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
 
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const livekitUrl = process.env.LIVEKIT_URL;
 
-    if (!apiKey || !apiSecret) {
-      return res.status(503).json({ error: "LiveKit yapılandırılmamış" });
+    if (!apiKey || !apiSecret || !livekitUrl) {
+      logger.error({ hasKey: !!apiKey, hasSecret: !!apiSecret, hasUrl: !!livekitUrl }, "LiveKit env eksik");
+      return res.status(503).json({ error: "Ses/video sistemi henüz yapılandırılmamış. Yöneticiyle iletişime geçin." });
     }
 
     // Verify channel exists and is voice/video type
@@ -71,7 +73,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
     res.json({
       token: jwt,
       room: roomName,
-      livekitUrl: process.env.LIVEKIT_URL,
+      livekitUrl,
     });
   } catch (error) {
     logger.error({ err: error }, "LiveKit token hatası");

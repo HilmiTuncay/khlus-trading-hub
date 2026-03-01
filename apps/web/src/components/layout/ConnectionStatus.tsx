@@ -1,15 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { onConnectionStatus, connectSocket, type ConnectionStatusType } from "@/lib/socket";
-import { Loader2, WifiOff, RefreshCw } from "lucide-react";
+import { Loader2, WifiOff, RefreshCw, Wifi } from "lucide-react";
 
 export function ConnectionStatus() {
   const [status, setStatus] = useState<ConnectionStatusType>("connected");
+  const [showRecovered, setShowRecovered] = useState(false);
+  const wasDisconnected = useRef(false);
 
   useEffect(() => {
-    return onConnectionStatus(setStatus);
+    return onConnectionStatus((newStatus) => {
+      // Bağlantı geri geldiğinde kısa süre "bağlandı" göster
+      if (newStatus === "connected" && wasDisconnected.current) {
+        setShowRecovered(true);
+        setTimeout(() => setShowRecovered(false), 2000);
+      }
+      wasDisconnected.current = newStatus === "disconnected";
+      setStatus(newStatus);
+    });
   }, []);
+
+  if (showRecovered) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 py-2 text-sm font-medium text-white">
+        <div className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 shadow-lg">
+          <Wifi className="h-4 w-4" />
+          <span>Baglanti yeniden kuruldu</span>
+        </div>
+      </div>
+    );
+  }
 
   if (status === "connected") return null;
 

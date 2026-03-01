@@ -7,6 +7,7 @@ import { useServerStore } from "@/stores/server";
 import { useVoiceStore } from "@/stores/voice";
 import { useDMStore } from "@/stores/dm";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import { api } from "@/lib/api";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
@@ -54,12 +55,15 @@ export default function ServersLayout({
     setShowMembers(false);
   };
 
-  // Socket baglantisi ve voice event dinleme
+  // Socket baglantisi ve voice event dinleme + keep-alive
   useEffect(() => {
     if (!user) return;
 
     const socket = connectSocket();
     if (!socket) return;
+
+    // Sunucuyu sıcak tut (Render uyku engelleyici)
+    api.startKeepAlive();
 
     socket.on("voice:channel_users", (data: any) => {
       useVoiceStore.getState().setChannelUsers(data.channelId, data.users);
@@ -74,6 +78,7 @@ export default function ServersLayout({
     });
 
     return () => {
+      api.stopKeepAlive();
       socket.off("voice:channel_users");
       socket.off("voice:user_joined");
       socket.off("voice:user_left");
@@ -217,6 +222,10 @@ export default function ServersLayout({
           if (userId) {
             getSocket()?.emit("voice:join", { channelId: activeVoiceChannel.id, userId });
           }
+        }}
+        onError={(error) => {
+          console.error("LiveKit bağlantı hatası:", error);
+          useVoiceStore.getState().disconnectVoice();
         }}
         style={{ display: "contents" }}
       >
