@@ -7,6 +7,7 @@ import type {
   VoiceUser,
 } from "@khlus/shared";
 import { prisma } from "../db/prisma";
+import logger from "../lib/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production";
 
@@ -16,6 +17,24 @@ let io: Server<ClientToServerEvents, ServerToClientEvents>;
 const voiceChannels = new Map<string, Map<string, VoiceUser>>();
 // socketId -> { channelId, userId }
 const socketVoiceState = new Map<string, { channelId: string; userId: string }>();
+
+// Socket rate limiter
+function createSocketRateLimiter(maxEvents: number, windowMs: number) {
+  const counters = new Map<string, { count: number; resetAt: number }>();
+  return (socketId: string): boolean => {
+    const now = Date.now();
+    const entry = counters.get(socketId);
+    if (!entry || now > entry.resetAt) {
+      counters.set(socketId, { count: 1, resetAt: now + windowMs });
+      return true;
+    }
+    entry.count++;
+    return entry.count <= maxEvents;
+  };
+}
+
+const messageRateLimit = createSocketRateLimiter(30, 10_000); // 30 event / 10s
+const typingRateLimit = createSocketRateLimiter(5, 5_000); // 5 event / 5s
 
 export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
   io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
@@ -37,39 +56,68 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     },
   });
 
-  // Socket authentication middleware
+  // Socket authentication middleware — anonim bağlantıyı reddet
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace("Bearer ", "");
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-        (socket as any).userId = decoded.userId;
-      } catch {
-        // Token geçersiz ama bağlantıya izin ver (anonim)
-      }
+    if (!token) {
+      return next(new Error("Authentication required"));
     }
-    next();
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      (socket as any).userId = decoded.userId;
+      next();
+    } catch {
+      next(new Error("Invalid token"));
+    }
   });
 
   io.on("connection", (socket) => {
-    const authenticatedUserId = (socket as any).userId;
-    console.log(`[Socket] Client connected: ${socket.id}${authenticatedUserId ? ` (user: ${authenticatedUserId})` : " (anonymous)"}`);
+    const authenticatedUserId: string = (socket as any).userId;
+    logger.info({ socketId: socket.id, userId: authenticatedUserId }, "Socket client bağlandı");
 
-    // Text kanal odası
-    socket.on("channel:join", (channelId) => {
-      socket.join(`channel:${channelId}`);
+    // Text kanal odası — üyelik kontrolü
+    socket.on("channel:join", async (channelId) => {
+      try {
+        const channel = await prisma.channel.findUnique({
+          where: { id: channelId },
+          select: { serverId: true },
+        });
+        if (!channel) return;
+
+        const member = await prisma.member.findUnique({
+          where: { userId_serverId: { userId: authenticatedUserId, serverId: channel.serverId } },
+        });
+        if (!member) {
+          logger.warn({ userId: authenticatedUserId, channelId }, "Yetkisiz kanal katılma denemesi");
+          return;
+        }
+        socket.join(`channel:${channelId}`);
+      } catch (error) {
+        logger.error({ err: error, channelId }, "channel:join hatası");
+      }
     });
 
     socket.on("channel:leave", (channelId) => {
       socket.leave(`channel:${channelId}`);
     });
 
-    // Ses/video kanalına katılma
+    // Ses/video kanalına katılma — sadece authenticatedUserId, üyelik kontrolü
     socket.on("voice:join", async (data) => {
       try {
         const { channelId } = data;
-        const userId = authenticatedUserId || data.userId;
-        if (!userId) return;
+        const userId = authenticatedUserId;
+
+        // Kanal ve üyelik kontrolü
+        const channel = await prisma.channel.findUnique({ where: { id: channelId } });
+        if (!channel) return;
+
+        const member = await prisma.member.findUnique({
+          where: { userId_serverId: { userId, serverId: channel.serverId } },
+        });
+        if (!member) {
+          logger.warn({ userId, channelId }, "Yetkisiz voice katılma denemesi");
+          return;
+        }
 
         // Kullanıcı bilgilerini çek
         const user = await prisma.user.findUnique({
@@ -100,33 +148,39 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
         socketVoiceState.set(socket.id, { channelId, userId });
 
         // Sunucu odasına katıl (broadcast için)
-        const channel = await prisma.channel.findUnique({ where: { id: channelId } });
-        if (channel) {
-          socket.join(`server:${channel.serverId}`);
-        }
+        socket.join(`server:${channel.serverId}`);
 
         // Herkese bildir
-        io.to(`server:${channel?.serverId}`).emit("voice:user_joined", {
+        io.to(`server:${channel.serverId}`).emit("voice:user_joined", {
           channelId,
           user: voiceUser,
         });
 
-        console.log(`[Voice] ${user.displayName} -> ${channelId}`);
+        logger.info({ userId: user.id, displayName: user.displayName, channelId }, "Voice kanalına katıldı");
       } catch (error) {
-        console.error("[Voice] Join error:", error);
+        logger.error({ err: error }, "Voice join hatası");
       }
     });
 
     // Ses/video kanalından ayrılma
     socket.on("voice:leave", (data) => {
-      const { channelId, userId } = data;
-      removeUserFromVoice(socket, channelId, userId);
+      const { channelId } = data;
+      removeUserFromVoice(socket, channelId, authenticatedUserId);
       socketVoiceState.delete(socket.id);
     });
 
-    // Sunucudaki tüm voice durumlarını iste
+    // Sunucudaki tüm voice durumlarını iste — üyelik kontrolü
     socket.on("voice:get_users", async (serverId) => {
       try {
+        // Üyelik kontrolü
+        const member = await prisma.member.findUnique({
+          where: { userId_serverId: { userId: authenticatedUserId, serverId } },
+        });
+        if (!member) {
+          logger.warn({ userId: authenticatedUserId, serverId }, "Yetkisiz voice:get_users denemesi");
+          return;
+        }
+
         // Bu sunucudaki tüm kanalları bul
         const channels = await prisma.channel.findMany({
           where: { serverId, type: { in: ["voice", "video"] } },
@@ -147,30 +201,35 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
           }
         }
       } catch (error) {
-        console.error("[Voice] Get users error:", error);
+        logger.error({ err: error }, "Voice get users hatası");
       }
     });
 
-    // Mesaj
+    // Mesaj — rate limiting
     socket.on("message:send", async (data) => {
+      if (!messageRateLimit(socket.id)) {
+        logger.warn({ socketId: socket.id, userId: authenticatedUserId }, "Socket mesaj rate limit aşıldı");
+        return;
+      }
       try {
-        console.log(`[Socket] Message in channel:${data.channelId}`);
+        logger.debug({ channelId: data.channelId }, "Socket mesaj alındı");
       } catch (error) {
-        console.error("[Socket] Error handling message:", error);
+        logger.error({ err: error }, "Socket mesaj hatası");
       }
     });
 
-    // Typing
+    // Typing — rate limiting, "unknown" fallback kaldırıldı
     socket.on("typing:start", (channelId) => {
+      if (!typingRateLimit(socket.id)) return;
       socket.to(`channel:${channelId}`).emit("typing:start", {
-        userId: authenticatedUserId || "unknown",
+        userId: authenticatedUserId,
         channelId,
       });
     });
 
     socket.on("typing:stop", (channelId) => {
       socket.to(`channel:${channelId}`).emit("typing:stop", {
-        userId: authenticatedUserId || "unknown",
+        userId: authenticatedUserId,
         channelId,
       });
     });
@@ -182,7 +241,7 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
         removeUserFromVoice(socket, state.channelId, state.userId);
         socketVoiceState.delete(socket.id);
       }
-      console.log(`[Socket] Client disconnected: ${socket.id}`);
+      logger.info({ socketId: socket.id }, "Socket client ayrıldı");
     });
   });
 

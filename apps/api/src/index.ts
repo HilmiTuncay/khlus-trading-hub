@@ -19,6 +19,8 @@ import { roleRouter } from "./routes/roles";
 import { searchRouter } from "./routes/search";
 import { dmRouter } from "./routes/dm";
 import { eventRouter } from "./routes/events";
+import logger from "./lib/logger";
+import { csrfProtection } from "./middleware/csrf";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,7 +31,7 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .map((s) => s.trim())
   .filter(Boolean);
 
-console.log("[CORS] İzin verilen originler:", CORS_ORIGINS);
+logger.info({ origins: CORS_ORIGINS }, "CORS izin verilen originler");
 
 // Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
 app.get("/health", (_req, res) => {
@@ -63,7 +65,7 @@ app.use(
         if (isVercelPreview) {
           callback(null, true);
         } else {
-          console.warn(`[CORS] Reddedilen origin: ${origin} | İzin verilenler: ${CORS_ORIGINS.join(", ")}`);
+          logger.warn({ origin, allowed: CORS_ORIGINS }, "CORS reddedilen origin");
           callback(null, false); // 500 yerine sessizce reddet
         }
       }
@@ -74,6 +76,24 @@ app.use(
 
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// CSRF koruması — Origin header doğrulama
+app.use(csrfProtection(CORS_ORIGINS));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info({
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: Date.now() - start,
+      ip: req.ip,
+    }, `${req.method} ${req.originalUrl} ${res.statusCode}`);
+  });
+  next();
+});
 
 // Genel rate limit
 const generalLimiter = rateLimit({
@@ -122,7 +142,5 @@ app.use("/api/events", eventRouter);
 initSocket(httpServer, CORS_ORIGINS);
 
 httpServer.listen(PORT, () => {
-  console.log(`[API] Server running on port ${PORT}`);
-  console.log(`[API] CORS origins: ${CORS_ORIGINS.join(", ")}`);
-  console.log(`[API] NODE_ENV: ${process.env.NODE_ENV || "development"}`);
+  logger.info({ port: PORT, origins: CORS_ORIGINS, env: process.env.NODE_ENV || "development" }, `API sunucusu port ${PORT} üzerinde çalışıyor`);
 });

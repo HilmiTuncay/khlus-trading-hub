@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
+import logger from "../lib/logger";
 
 export const reactionRouter = Router();
 reactionRouter.use(authenticate);
@@ -91,7 +92,7 @@ reactionRouter.put("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Reactions] Toggle error:", error);
+    logger.error({ err: error }, "Reaksiyon toggle hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -111,7 +112,7 @@ reactionRouter.get("/:messageId", async (req: Request, res: Response) => {
 
     res.json({ reactions: grouped });
   } catch (error) {
-    console.error("[Reactions] Get error:", error);
+    logger.error({ err: error }, "Reaksiyon getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

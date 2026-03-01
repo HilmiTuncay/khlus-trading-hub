@@ -4,6 +4,8 @@ import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { checkPermission } from "../utils/permissions";
 import { Permissions } from "@khlus/shared";
+import logger from "../lib/logger";
+import { sanitizeText } from "../lib/sanitize";
 
 export const channelRouter = Router();
 channelRouter.use(authenticate);
@@ -43,9 +45,9 @@ channelRouter.post("/", async (req: Request, res: Response) => {
       data: {
         serverId: data.serverId,
         categoryId: data.categoryId,
-        name: data.name,
+        name: sanitizeText(data.name),
         type: data.type,
-        topic: data.topic,
+        topic: data.topic ? sanitizeText(data.topic) : undefined,
         position: channelCount,
       },
     });
@@ -55,7 +57,7 @@ channelRouter.post("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Channels] Create error:", error);
+    logger.error({ err: error }, "Kanal oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -74,7 +76,7 @@ channelRouter.get("/:channelId", async (req: Request, res: Response) => {
 
     res.json({ channel });
   } catch (error) {
-    console.error("[Channels] Get error:", error);
+    logger.error({ err: error }, "Kanal getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -111,8 +113,8 @@ channelRouter.patch("/:channelId", async (req: Request, res: Response) => {
     const updated = await prisma.channel.update({
       where: { id: channel.id },
       data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.topic !== undefined && { topic: data.topic }),
+        ...(data.name !== undefined && { name: sanitizeText(data.name) }),
+        ...(data.topic !== undefined && { topic: data.topic ? sanitizeText(data.topic) : null }),
         ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
       },
     });
@@ -122,7 +124,7 @@ channelRouter.patch("/:channelId", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Channels] Update error:", error);
+    logger.error({ err: error }, "Kanal güncelleme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -156,7 +158,7 @@ channelRouter.delete("/:channelId", async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Channels] Delete error:", error);
+    logger.error({ err: error }, "Kanal silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -187,7 +189,7 @@ channelRouter.post("/categories", async (req: Request, res: Response) => {
     const category = await prisma.category.create({
       data: {
         serverId: data.serverId,
-        name: data.name,
+        name: sanitizeText(data.name),
         position: catCount,
       },
     });
@@ -197,7 +199,7 @@ channelRouter.post("/categories", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Categories] Create error:", error);
+    logger.error({ err: error }, "Kategori oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -222,7 +224,7 @@ channelRouter.patch("/categories/:categoryId", async (req: Request, res: Respons
 
     const updated = await prisma.category.update({
       where: { id: category.id },
-      data: { name },
+      data: { name: sanitizeText(name) },
     });
 
     res.json({ category: updated });
@@ -230,7 +232,7 @@ channelRouter.patch("/categories/:categoryId", async (req: Request, res: Respons
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Categories] Update error:", error);
+    logger.error({ err: error }, "Kategori güncelleme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -262,7 +264,7 @@ channelRouter.delete("/categories/:categoryId", async (req: Request, res: Respon
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Categories] Delete error:", error);
+    logger.error({ err: error }, "Kategori silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
+import logger from "../lib/logger";
+import { sanitizeText } from "../lib/sanitize";
 
 export const dmRouter = Router();
 dmRouter.use(authenticate);
@@ -60,7 +62,7 @@ dmRouter.get("/conversations", async (req: Request, res: Response) => {
 
     res.json({ conversations: enriched });
   } catch (error) {
-    console.error("[DM] List conversations error:", error);
+    logger.error({ err: error }, "DM konuşma listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -119,7 +121,7 @@ dmRouter.post("/conversations", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[DM] Create conversation error:", error);
+    logger.error({ err: error }, "DM konuşma oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -158,7 +160,7 @@ dmRouter.get("/:conversationId/messages", async (req: Request, res: Response) =>
 
     res.json({ messages: messages.reverse() });
   } catch (error) {
-    console.error("[DM] Get messages error:", error);
+    logger.error({ err: error }, "DM mesaj getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -190,7 +192,7 @@ dmRouter.post("/:conversationId/messages", async (req: Request, res: Response) =
       data: {
         conversationId,
         authorId: req.user!.userId,
-        content,
+        content: sanitizeText(content),
       },
       include: {
         author: {
@@ -210,7 +212,7 @@ dmRouter.post("/:conversationId/messages", async (req: Request, res: Response) =
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[DM] Send message error:", error);
+    logger.error({ err: error }, "DM mesaj gönderme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

@@ -5,6 +5,7 @@ import { authenticate } from "../middleware/auth";
 import { checkPermission } from "../utils/permissions";
 import { Permissions } from "@khlus/shared";
 import { getIO } from "../socket";
+import logger from "../lib/logger";
 
 export const memberRouter = Router();
 memberRouter.use(authenticate);
@@ -33,7 +34,7 @@ memberRouter.get("/:serverId", async (req: Request, res: Response) => {
 
     res.json({ members });
   } catch (error) {
-    console.error("[Members] List error:", error);
+    logger.error({ err: error }, "Üye listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -64,7 +65,7 @@ memberRouter.delete("/:serverId/leave", async (req: Request, res: Response) => {
 
     res.json({ message: "Sunucudan ayrıldınız" });
   } catch (error) {
-    console.error("[Members] Leave error:", error);
+    logger.error({ err: error }, "Üye ayrılma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -114,7 +115,7 @@ memberRouter.post("/:serverId/kick/:userId", async (req: Request, res: Response)
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Members] Kick error:", error);
+    logger.error({ err: error }, "Üye atma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -184,7 +185,7 @@ memberRouter.post("/:serverId/ban/:userId", async (req: Request, res: Response) 
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Members] Ban error:", error);
+    logger.error({ err: error }, "Üye banlama hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -206,7 +207,7 @@ memberRouter.delete("/:serverId/ban/:userId", async (req: Request, res: Response
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Members] Unban error:", error);
+    logger.error({ err: error }, "Ban kaldırma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -228,7 +229,7 @@ memberRouter.get("/:serverId/bans", async (req: Request, res: Response) => {
 
     res.json({ bans });
   } catch (error) {
-    console.error("[Members] Bans list error:", error);
+    logger.error({ err: error }, "Ban listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

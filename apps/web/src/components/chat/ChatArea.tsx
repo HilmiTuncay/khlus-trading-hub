@@ -82,14 +82,32 @@ export function ChatArea() {
       );
     };
 
+    // Reconnect sonrası kanala tekrar katıl ve mesajları yeniden çek
+    const handleReconnect = async () => {
+      socket.emit("channel:join", activeChannel.id);
+      try {
+        const res = await api.getMessages(activeChannel.id);
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newMsgs = res.messages.filter((m: any) => !existingIds.has(m.id));
+          if (newMsgs.length === 0) return prev;
+          return [...prev, ...newMsgs].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+      } catch {}
+    };
+
     socket.on("message:new", handleNewMessage);
     socket.on("message:delete", handleDeleteMessage);
     socket.on("message:update", handleUpdateMessage);
+    socket.on("connect", handleReconnect);
 
     return () => {
       socket.off("message:new", handleNewMessage);
       socket.off("message:delete", handleDeleteMessage);
       socket.off("message:update", handleUpdateMessage);
+      socket.off("connect", handleReconnect);
     };
   }, [activeChannel]);
 

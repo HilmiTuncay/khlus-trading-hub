@@ -4,6 +4,7 @@ import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { checkPermission } from "../utils/permissions";
 import { Permissions } from "@khlus/shared";
+import logger from "../lib/logger";
 
 export const roleRouter = Router();
 roleRouter.use(authenticate);
@@ -34,7 +35,7 @@ roleRouter.get("/:serverId", async (req: Request, res: Response) => {
 
     res.json({ roles });
   } catch (error) {
-    console.error("[Roles] List error:", error);
+    logger.error({ err: error }, "Rol listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -74,7 +75,7 @@ roleRouter.post("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Roles] Create error:", error);
+    logger.error({ err: error }, "Rol oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -122,7 +123,7 @@ roleRouter.patch("/:roleId", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Roles] Update error:", error);
+    logger.error({ err: error }, "Rol güncelleme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -160,7 +161,7 @@ roleRouter.delete("/:roleId", async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Roles] Delete error:", error);
+    logger.error({ err: error }, "Rol silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -225,7 +226,7 @@ roleRouter.put("/assign", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Roles] Assign error:", error);
+    logger.error({ err: error }, "Rol atama hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

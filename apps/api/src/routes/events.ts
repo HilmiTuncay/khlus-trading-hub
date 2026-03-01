@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
+import logger from "../lib/logger";
+import { sanitizeText } from "../lib/sanitize";
 
 export const eventRouter = Router();
 eventRouter.use(authenticate);
@@ -35,7 +37,7 @@ eventRouter.get("/:serverId", async (req: Request, res: Response) => {
 
     res.json({ events });
   } catch (error) {
-    console.error("[Events] List error:", error);
+    logger.error({ err: error }, "Etkinlik listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -71,8 +73,8 @@ eventRouter.post("/", async (req: Request, res: Response) => {
       data: {
         serverId: data.serverId,
         createdBy: req.user!.userId,
-        title: data.title,
-        description: data.description || null,
+        title: sanitizeText(data.title),
+        description: data.description ? sanitizeText(data.description) : null,
         channelId: data.channelId || null,
         startAt: new Date(data.startAt),
         endAt: data.endAt ? new Date(data.endAt) : null,
@@ -84,7 +86,7 @@ eventRouter.post("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Events] Create error:", error);
+    logger.error({ err: error }, "Etkinlik oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -113,7 +115,7 @@ eventRouter.delete("/:eventId", async (req: Request, res: Response) => {
     await prisma.event.delete({ where: { id: event.id } });
     res.json({ success: true });
   } catch (error) {
-    console.error("[Events] Delete error:", error);
+    logger.error({ err: error }, "Etkinlik silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

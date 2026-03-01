@@ -9,6 +9,7 @@ import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
+import { ConnectionStatus } from "@/components/layout/ConnectionStatus";
 import { DMPanel } from "@/components/chat/DMPanel";
 import { Menu, Users, X, MessageSquare } from "lucide-react";
 
@@ -205,6 +206,8 @@ export default function ServersLayout({
           </div>
         </>
       )}
+
+      <ConnectionStatus />
     </div>
   );
 }

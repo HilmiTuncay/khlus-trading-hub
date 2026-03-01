@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { AccessToken } from "livekit-server-sdk";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
+import logger from "../lib/logger";
 
 export const livekitRouter = Router();
 livekitRouter.use(authenticate);
@@ -73,7 +74,7 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
       livekitUrl: process.env.LIVEKIT_URL,
     });
   } catch (error) {
-    console.error("[LiveKit] Token error:", error);
+    logger.error({ err: error }, "LiveKit token hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
+import logger from "../lib/logger";
 
 export const searchRouter = Router();
 searchRouter.use(authenticate);
@@ -79,7 +80,7 @@ searchRouter.get("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Search] Error:", error);
+    logger.error({ err: error }, "Arama hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

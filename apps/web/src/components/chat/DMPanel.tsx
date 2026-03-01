@@ -54,14 +54,35 @@ export function DMPanel({ onClose, initialTargetUserId }: DMPanelProps) {
     socket.emit("channel:join", `dm:${activeConv.id}`);
 
     const handleNewMessage = (message: any) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+    };
+
+    // Reconnect sonrası DM'e tekrar katıl ve mesajları yeniden çek
+    const handleReconnect = async () => {
+      socket.emit("channel:join", `dm:${activeConv.id}`);
+      try {
+        const res = await api.getDMMessages(activeConv.id);
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newMsgs = res.messages.filter((m: any) => !existingIds.has(m.id));
+          if (newMsgs.length === 0) return prev;
+          return [...prev, ...newMsgs].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+      } catch {}
     };
 
     socket.on("message:new", handleNewMessage);
+    socket.on("connect", handleReconnect);
 
     return () => {
       socket.emit("channel:leave", `dm:${activeConv.id}`);
       socket.off("message:new", handleNewMessage);
+      socket.off("connect", handleReconnect);
     };
   }, [activeConv?.id]);
 

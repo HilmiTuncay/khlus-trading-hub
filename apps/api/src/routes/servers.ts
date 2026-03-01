@@ -4,6 +4,8 @@ import crypto from "crypto";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { PermissionPresets } from "@khlus/shared";
+import logger from "../lib/logger";
+import { sanitizeText } from "../lib/sanitize";
 
 export const serverRouter = Router();
 serverRouter.use(authenticate);
@@ -27,7 +29,7 @@ serverRouter.get("/", async (req: Request, res: Response) => {
 
     res.json({ servers });
   } catch (error) {
-    console.error("[Servers] List error:", error);
+    logger.error({ err: error }, "Sunucu listesi hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -35,7 +37,8 @@ serverRouter.get("/", async (req: Request, res: Response) => {
 // POST /api/servers - Yeni sunucu olustur
 serverRouter.post("/", async (req: Request, res: Response) => {
   try {
-    const { name } = createServerSchema.parse(req.body);
+    const { name: rawName } = createServerSchema.parse(req.body);
+    const name = sanitizeText(rawName);
     const inviteCode = crypto.randomBytes(4).toString("hex");
 
     const server = await prisma.$transaction(async (tx: any) => {
@@ -122,7 +125,7 @@ serverRouter.post("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Servers] Create error:", error);
+    logger.error({ err: error }, "Sunucu oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -159,7 +162,7 @@ serverRouter.get("/:serverId", async (req: Request, res: Response) => {
 
     res.json({ server });
   } catch (error) {
-    console.error("[Servers] Get error:", error);
+    logger.error({ err: error }, "Sunucu getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -185,6 +188,9 @@ serverRouter.patch("/:serverId", async (req: Request, res: Response) => {
     }
 
     const data = updateServerSchema.parse(req.body);
+    if (data.name) {
+      data.name = sanitizeText(data.name);
+    }
 
     const updated = await prisma.server.update({
       where: { id: req.params.serverId },
@@ -196,7 +202,7 @@ serverRouter.patch("/:serverId", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Servers] Update error:", error);
+    logger.error({ err: error }, "Sunucu güncelleme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -244,7 +250,7 @@ serverRouter.delete("/:serverId", async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("[Servers] Delete error:", error);
+    logger.error({ err: error }, "Sunucu silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -272,7 +278,7 @@ serverRouter.patch("/:serverId/invite-code", async (req: Request, res: Response)
 
     res.json({ inviteCode: updated.inviteCode });
   } catch (error) {
-    console.error("[Servers] Invite code refresh error:", error);
+    logger.error({ err: error }, "Davet kodu yenileme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -326,7 +332,7 @@ serverRouter.post("/join/:inviteCode", async (req: Request, res: Response) => {
 
     res.status(201).json({ server, member });
   } catch (error) {
-    console.error("[Servers] Join error:", error);
+    logger.error({ err: error }, "Sunucuya katılma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

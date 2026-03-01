@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import fs from "fs";
 import { authenticate } from "../middleware/auth";
+import logger from "../lib/logger";
 
 export const uploadRouter = Router();
 uploadRouter.use(authenticate);
@@ -69,7 +70,7 @@ uploadRouter.post("/", upload.array("files", 5), async (req: Request, res: Respo
     if (error.message === "Desteklenmeyen dosya tipi") {
       return res.status(400).json({ error: error.message });
     }
-    console.error("[Uploads] Error:", error);
+    logger.error({ err: error }, "Dosya yükleme hatası");
     res.status(500).json({ error: "Dosya yükleme hatası" });
   }
 });

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
+import logger from "../lib/logger";
+import { sanitizeText } from "../lib/sanitize";
 
 export const messageRouter = Router();
 messageRouter.use(authenticate);
@@ -59,7 +61,7 @@ messageRouter.get("/:channelId", async (req: Request, res: Response) => {
 
     res.json({ messages: messagesWithGroupedReactions.reverse() });
   } catch (error) {
-    console.error("[Messages] Get error:", error);
+    logger.error({ err: error }, "Mesaj getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -95,7 +97,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
       data: {
         channelId: data.channelId,
         authorId: req.user!.userId,
-        content: data.content,
+        content: sanitizeText(data.content),
         attachments: data.attachments.length > 0 ? data.attachments : undefined,
       },
       include: {
@@ -123,7 +125,7 @@ messageRouter.post("/", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Messages] Send error:", error);
+    logger.error({ err: error }, "Mesaj gönderme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -164,7 +166,12 @@ messageRouter.post("/signal", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
-    const content = `📊 ${data.direction.toUpperCase()} ${data.symbol} @ ${data.entry}`;
+    const symbol = sanitizeText(data.symbol);
+    const entry = sanitizeText(data.entry);
+    const stopLoss = sanitizeText(data.stopLoss);
+    const targets = data.targets.map(sanitizeText);
+    const notes = data.notes ? sanitizeText(data.notes) : "";
+    const content = `📊 ${data.direction.toUpperCase()} ${symbol} @ ${entry}`;
 
     const message = await prisma.message.create({
       data: {
@@ -174,11 +181,11 @@ messageRouter.post("/signal", async (req: Request, res: Response) => {
         type: "signal",
         metadata: {
           direction: data.direction,
-          symbol: data.symbol,
-          entry: data.entry,
-          targets: data.targets,
-          stopLoss: data.stopLoss,
-          notes: data.notes || "",
+          symbol,
+          entry,
+          targets,
+          stopLoss,
+          notes,
         },
       },
       include: {
@@ -198,7 +205,7 @@ messageRouter.post("/signal", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Messages] Signal error:", error);
+    logger.error({ err: error }, "Sinyal gönderme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -235,15 +242,18 @@ messageRouter.post("/poll", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
+    const question = sanitizeText(data.question);
+    const options = data.options.map((opt) => sanitizeText(opt));
+
     const message = await prisma.message.create({
       data: {
         channelId: data.channelId,
         authorId: req.user!.userId,
-        content: `📊 ${data.question}`,
+        content: `📊 ${question}`,
         type: "poll",
         metadata: {
-          question: data.question,
-          options: data.options.map((opt) => ({ text: opt, votes: [] as string[] })),
+          question,
+          options: options.map((opt) => ({ text: opt, votes: [] as string[] })),
         },
       },
       include: {
@@ -263,7 +273,7 @@ messageRouter.post("/poll", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Messages] Poll error:", error);
+    logger.error({ err: error }, "Anket oluşturma hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -317,7 +327,7 @@ messageRouter.put("/:messageId/vote", async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    console.error("[Messages] Vote error:", error);
+    logger.error({ err: error }, "Oy verme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -351,7 +361,7 @@ messageRouter.delete("/:messageId", async (req: Request, res: Response) => {
 
     res.json({ message: "Mesaj silindi" });
   } catch (error) {
-    console.error("[Messages] Delete error:", error);
+    logger.error({ err: error }, "Mesaj silme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -403,7 +413,7 @@ messageRouter.put("/:messageId/pin", async (req: Request, res: Response) => {
 
     res.json({ message: updated });
   } catch (error) {
-    console.error("[Messages] Pin error:", error);
+    logger.error({ err: error }, "Mesaj pin hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });
@@ -436,7 +446,7 @@ messageRouter.get("/:channelId/pinned", async (req: Request, res: Response) => {
 
     res.json({ messages: messagesWithGroupedReactions });
   } catch (error) {
-    console.error("[Messages] Get pinned error:", error);
+    logger.error({ err: error }, "Pinli mesaj getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });
   }
 });

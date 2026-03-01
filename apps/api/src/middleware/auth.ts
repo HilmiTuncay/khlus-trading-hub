@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import logger from "../lib/logger";
 
 export interface AuthPayload {
   userId: string;
@@ -17,7 +18,7 @@ declare global {
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production";
 
 if (!process.env.JWT_SECRET) {
-  console.warn("[SECURITY] JWT_SECRET ortam değişkeni ayarlanmamış! Varsayılan secret kullanılıyor. Üretim ortamında mutlaka değiştirin.");
+  logger.warn("JWT_SECRET ortam değişkeni ayarlanmamış! Varsayılan secret kullanılıyor.");
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {
