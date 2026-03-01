@@ -34,9 +34,15 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
 logger.info({ origins: CORS_ORIGINS }, "CORS izin verilen originler");
 
 // Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
-app.get("/health", (_req, res) => {
+app.get("/health", async (_req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  try {
+    const { prisma } = await import("./db/prisma");
+    await prisma.$queryRawUnsafe("SELECT 1");
+    res.json({ status: "ok", db: "connected", timestamp: new Date().toISOString() });
+  } catch (err: any) {
+    res.status(200).json({ status: "ok", db: "error", dbError: err.message, timestamp: new Date().toISOString() });
+  }
 });
 
 // Güvenlik headers
