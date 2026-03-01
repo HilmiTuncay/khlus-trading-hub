@@ -5,6 +5,8 @@ interface AuthState {
   user: any | null;
   token: string | null;
   isLoading: boolean;
+  hasLoadedOnce: boolean;
+  loadError: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     email: string;
@@ -21,6 +23,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   isLoading: true,
+  hasLoadedOnce: false,
+  loadError: null,
 
   login: async (email, password) => {
     const res = await api.login({ email, password });
@@ -65,11 +69,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       api.setToken(token);
       const res = await api.getMe();
-      set({ user: res.user, token, isLoading: false });
-    } catch {
-      localStorage.removeItem("token");
-      api.setToken(null);
-      set({ user: null, token: null, isLoading: false });
+      set({ user: res.user, token, isLoading: false, hasLoadedOnce: true, loadError: null });
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("401") || msg.includes("403")) {
+        localStorage.removeItem("token");
+        api.setToken(null);
+        set({ user: null, token: null, isLoading: false, loadError: null });
+      } else {
+        // Network hatası — token'i koru, retry imkanı sun
+        set({ isLoading: false, loadError: msg || "Bağlantı hatası" });
+      }
     }
   },
 }));

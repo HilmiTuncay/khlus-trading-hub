@@ -265,6 +265,10 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 - Vercel free tier aylik 100GB bandwidth. Baslangic icin yeterli.
 - Tum servisler ucretsiz tier ile baslatilacak, buyume ile olceklenecek.
 
+## Deploy Durumu
+- **Frontend (Vercel):** Sunucu baglantisi aktif
+- **Backend (Render):** Aktif (DB connected)
+
 ---
 
 ## Durum Gostergesi
@@ -276,7 +280,7 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 4: Ses & Video | TAMAMLANDI | ██████████ 100% |
 | Faz 5: UX | TAMAMLANDI | ██████████ 100% |
 | Faz 6: Trading Ozel | TAMAMLANDI | ██████████ 100% |
-| Faz 7: Lansman | DEVAM EDIYOR | ██████░░░░ 60% |
+| Faz 7: Lansman | DEVAM EDIYOR | ████████░░ 80% |
 
 **Son Guncelleme:** 2026-03-01
 
@@ -308,6 +312,15 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 - [x] Performans: ChatArea dynamic import (lazy loading)
 - [x] Performans: MessageItem React.memo optimizasyonu
 - [x] Performans: JSON body limit (1MB)
+- [x] Structured Logging: Pino ile yapilandirilmis loglama (pino-pretty dev, JSON prod) + request logging middleware
+- [x] XSS Korumasi: Tum kullanici girisleri (mesaj, isim, kanal, etkinlik, sinyal, anket) xss paketi ile sanitize
+- [x] Socket.io Guvenlik: Anonim baglanti engeli, channel/voice uyelik kontrolu, userId spoofing duzeltmesi, rate limiting (mesaj 30/10s, typing 5/5s)
+- [x] Hesap Kilitleme: 5 basarisiz giris sonrasi 15dk kilit (429 yaniti), basarili giriste sifirlama
+- [x] CSRF Korumasi: Origin/Referer header dogrulama middleware'i (Vercel preview URL destegi)
+- [x] Socket.io Reconnect: Exponential backoff (1s-30s), auth hatasi tespiti, kacirilan mesaj merge, ConnectionStatus UI bileseni
+- [x] UX: Baglanti kopma — yukleme ekraninda takilma sorunu cozuldu (hasLoadedOnce/loadError, retry butonu, ust bar ConnectionStatus)
+- [x] UX: DM paneli yeniden tasarim — sanal sunucu gibi calisiyor (DMSidebar + DMChatArea, isDMMode store, dogal gecis)
+- [x] UX: Kalici ses odasi — Discord tarzi (LiveKitRoom layout seviyesinde, VoiceConnectionPanel mini panel, kanal degistirince ses kopmuyor)
 
 ## Tamamlanan Isler (Faz 6)
 - [x] Pin'lenmis mesajlar (isPinned/pinnedAt/pinnedBy alanlari, pin/unpin API, pinned panel)

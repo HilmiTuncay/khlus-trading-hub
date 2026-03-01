@@ -5,13 +5,8 @@ import { useServerStore } from "@/stores/server";
 import { Plus, LogIn, MessageSquare } from "lucide-react";
 import clsx from "clsx";
 
-interface ServerSidebarProps {
-  isDMActive?: boolean;
-  onDMClick?: () => void;
-}
-
-export function ServerSidebar({ isDMActive, onDMClick }: ServerSidebarProps = {}) {
-  const { servers, activeServer, loadServers, setActiveServer, createServer, joinServer } =
+export function ServerSidebar() {
+  const { servers, activeServer, loadServers, setActiveServer, createServer, joinServer, isDMMode, setDMMode } =
     useServerStore();
   const [showModal, setShowModal] = useState<"create" | "join" | null>(null);
   const [inputValue, setInputValue] = useState("");
@@ -44,14 +39,14 @@ export function ServerSidebar({ isDMActive, onDMClick }: ServerSidebarProps = {}
     <div className="flex h-full w-[72px] flex-col items-center gap-2 bg-surface-primary py-3">
       {/* DM button */}
       <button
-        onClick={onDMClick}
+        onClick={() => setDMMode(true)}
         className={clsx(
           "relative flex h-12 w-12 items-center justify-center rounded-[24px] bg-surface-elevated text-text-primary transition-all hover:rounded-[16px] hover:bg-accent-blue hover:text-white",
-          isDMActive && "rounded-[16px] bg-accent-blue text-white"
+          isDMMode && "rounded-[16px] bg-accent-blue text-white"
         )}
         title="Direkt Mesajlar"
       >
-        {isDMActive && (
+        {isDMMode && (
           <div className="absolute left-0 h-10 w-1 -translate-x-[20px] rounded-r-full bg-text-primary" />
         )}
         <MessageSquare size={22} />
@@ -67,12 +62,12 @@ export function ServerSidebar({ isDMActive, onDMClick }: ServerSidebarProps = {}
           onClick={() => setActiveServer(server.id)}
           className={clsx(
             "group relative flex h-12 w-12 items-center justify-center rounded-[24px] bg-surface-elevated text-text-primary transition-all hover:rounded-[16px] hover:bg-brand",
-            activeServer?.id === server.id && "rounded-[16px] bg-brand"
+            !isDMMode && activeServer?.id === server.id && "rounded-[16px] bg-brand"
           )}
           title={server.name}
         >
           {/* Active indicator */}
-          {activeServer?.id === server.id && (
+          {!isDMMode && activeServer?.id === server.id && (
             <div className="absolute left-0 h-10 w-1 -translate-x-[20px] rounded-r-full bg-text-primary" />
           )}
           <span className="text-sm font-bold">

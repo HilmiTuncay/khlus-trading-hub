@@ -5,13 +5,21 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useServerStore } from "@/stores/server";
 import { useVoiceStore } from "@/stores/voice";
+import { useDMStore } from "@/stores/dm";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
 import { ConnectionStatus } from "@/components/layout/ConnectionStatus";
-import { DMPanel } from "@/components/chat/DMPanel";
-import { Menu, Users, X, MessageSquare } from "lucide-react";
+import { DMSidebar } from "@/components/chat/DMSidebar";
+import { DMChatArea } from "@/components/chat/DMChatArea";
+import { ParticipantTracker } from "@/components/voice/MediaRoom";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+} from "@livekit/components-react";
+import "@livekit/components-styles";
+import { Menu, Users, RefreshCw, WifiOff } from "lucide-react";
 
 export default function ServersLayout({
   children,
@@ -19,46 +27,34 @@ export default function ServersLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isLoading, loadUser } = useAuthStore();
-  const { activeServer, activeChannel, setActiveServer } = useServerStore();
+  const { user, isLoading, hasLoadedOnce, loadError, loadUser } = useAuthStore();
+  const { activeServer, activeChannel, isDMMode, setDMMode } = useServerStore();
+  const { isConnected, activeVoiceChannel, livekitToken, livekitUrl } = useVoiceStore();
   const [showSidebar, setShowSidebar] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
-  const [showDM, setShowDM] = useState(false);
-  const [dmTargetUserId, setDmTargetUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadUser();
   }, [loadUser]);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && !loadError) {
       router.replace("/auth/login");
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, loadError, router]);
 
-  // Kanal değiştiğinde mobil sidebar'ı kapat
+  // Kanal degistiginde mobil sidebar'i kapat
   useEffect(() => {
     setShowSidebar(false);
   }, [activeChannel?.id]);
 
-  const handleDMClick = () => {
-    setShowDM(true);
-    setDmTargetUserId(null);
-  };
-
-  const handleServerClick = (serverId: string) => {
-    setShowDM(false);
-    setDmTargetUserId(null);
-    setActiveServer(serverId);
-  };
-
   const handleStartDM = (userId: string) => {
-    setShowDM(true);
-    setDmTargetUserId(userId);
+    setDMMode(true);
+    useDMStore.getState().setTargetUserId(userId);
     setShowMembers(false);
   };
 
-  // Socket bağlantısı ve voice event dinleme
+  // Socket baglantisi ve voice event dinleme
   useEffect(() => {
     if (!user) return;
 
@@ -84,7 +80,7 @@ export default function ServersLayout({
     };
   }, [user]);
 
-  // Aktif sunucu değiştiğinde voice durumlarını iste
+  // Aktif sunucu degistiginde voice durumlarini iste
   useEffect(() => {
     if (!activeServer) return;
     const socket = getSocket();
@@ -93,7 +89,8 @@ export default function ServersLayout({
     }
   }, [activeServer?.id]);
 
-  if (isLoading) {
+  // Ilk yukleme — spinner goster (sadece hic yuklenmemisse)
+  if (isLoading && !hasLoadedOnce) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand border-t-transparent" />
@@ -101,25 +98,36 @@ export default function ServersLayout({
     );
   }
 
+  // Ilk yukleme hatasi — retry ekrani
+  if (!user && loadError) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <WifiOff size={48} className="mx-auto mb-4 text-text-muted opacity-50" />
+          <p className="text-lg font-semibold text-text-primary mb-2">Baglanti Hatasi</p>
+          <p className="text-sm text-text-muted mb-4">{loadError}</p>
+          <button
+            onClick={() => loadUser()}
+            className="flex items-center gap-2 mx-auto rounded-lg bg-brand px-6 py-3 font-semibold text-surface-primary hover:bg-brand-dark transition"
+          >
+            <RefreshCw size={18} />
+            Tekrar Dene
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
-  return (
+  const layoutContent = (
     <div className="flex h-screen overflow-hidden">
-      {/* Desktop: her zaman göster. Mobil: toggle ile */}
+      {/* Desktop: her zaman goster. Mobil: toggle ile */}
 
-      {/* Server + Channel Sidebar / DM Panel */}
+      {/* Server + Channel Sidebar / DM Sidebar */}
       <div className="hidden md:flex">
-        <ServerSidebar isDMActive={showDM} onDMClick={handleDMClick} />
-        {showDM ? (
-          <div className="flex h-full w-60 flex-col bg-surface-secondary">
-            <DMPanel
-              onClose={() => setShowDM(false)}
-              initialTargetUserId={dmTargetUserId}
-            />
-          </div>
-        ) : (
-          <ChannelSidebar />
-        )}
+        <ServerSidebar />
+        {isDMMode ? <DMSidebar /> : <ChannelSidebar />}
       </div>
 
       {/* Mobil sidebar overlay */}
@@ -130,24 +138,15 @@ export default function ServersLayout({
             onClick={() => setShowSidebar(false)}
           />
           <div className="fixed left-0 top-0 z-50 flex h-full md:hidden">
-            <ServerSidebar isDMActive={showDM} onDMClick={handleDMClick} />
-            {showDM ? (
-              <div className="flex h-full w-60 flex-col bg-surface-secondary">
-                <DMPanel
-                  onClose={() => setShowDM(false)}
-                  initialTargetUserId={dmTargetUserId}
-                />
-              </div>
-            ) : (
-              <ChannelSidebar />
-            )}
+            <ServerSidebar />
+            {isDMMode ? <DMSidebar /> : <ChannelSidebar />}
           </div>
         </>
       )}
 
-      {/* Ana içerik */}
+      {/* Ana icerik */}
       <div className="flex flex-1 flex-col min-w-0">
-        {/* Mobil üst bar */}
+        {/* Mobil ust bar */}
         <div className="flex h-12 items-center gap-2 border-b border-surface-primary px-2 md:hidden">
           <button
             onClick={() => setShowSidebar(true)}
@@ -156,7 +155,7 @@ export default function ServersLayout({
             <Menu size={20} />
           </button>
           <span className="flex-1 truncate text-sm font-semibold">
-            {showDM ? "Direkt Mesajlar" : (
+            {isDMMode ? "Direkt Mesajlar" : (
               <>
                 {activeServer?.name || "Khlus Trading Hub"}
                 {activeChannel && (
@@ -165,7 +164,7 @@ export default function ServersLayout({
               </>
             )}
           </span>
-          {!showDM && (
+          {!isDMMode && (
             <button
               onClick={() => setShowMembers(!showMembers)}
               className="rounded p-1.5 text-text-muted hover:bg-surface-overlay hover:text-text-primary"
@@ -175,27 +174,18 @@ export default function ServersLayout({
           )}
         </div>
 
-        {showDM ? (
-          <div className="flex flex-1 items-center justify-center text-text-muted">
-            <div className="text-center">
-              <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Soldaki panelden bir konuşma seçin</p>
-            </div>
-          </div>
-        ) : (
-          children
-        )}
+        {isDMMode ? <DMChatArea /> : children}
       </div>
 
       {/* Member Sidebar: Desktop (DM modunda gizle) */}
-      {!showDM && (
+      {!isDMMode && (
         <div className="hidden lg:flex">
           <MemberSidebar onStartDM={handleStartDM} />
         </div>
       )}
 
       {/* Mobil member sidebar overlay */}
-      {showMembers && !showDM && (
+      {showMembers && !isDMMode && (
         <>
           <div
             className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -210,4 +200,32 @@ export default function ServersLayout({
       <ConnectionStatus />
     </div>
   );
+
+  // Voice aktifse LiveKitRoom ile sar (context provider olarak)
+  if (isConnected && livekitToken && livekitUrl && activeVoiceChannel) {
+    return (
+      <LiveKitRoom
+        token={livekitToken}
+        serverUrl={livekitUrl}
+        connect={true}
+        video={activeVoiceChannel.type === "video"}
+        audio={true}
+        onDisconnected={() => useVoiceStore.getState().disconnectVoice()}
+        onConnected={() => {
+          useVoiceStore.getState().joinChannel(activeVoiceChannel.id);
+          const userId = useAuthStore.getState().user?.id;
+          if (userId) {
+            getSocket()?.emit("voice:join", { channelId: activeVoiceChannel.id, userId });
+          }
+        }}
+        style={{ display: "contents" }}
+      >
+        <RoomAudioRenderer />
+        <ParticipantTracker channelId={activeVoiceChannel.id} />
+        {layoutContent}
+      </LiveKitRoom>
+    );
+  }
+
+  return layoutContent;
 }

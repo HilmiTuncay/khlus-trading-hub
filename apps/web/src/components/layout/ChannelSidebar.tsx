@@ -5,6 +5,7 @@ import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { useVoiceStore } from "@/stores/voice";
 import { ServerSettingsModal } from "@/components/server/ServerSettingsModal";
+import { VoiceConnectionPanel } from "@/components/voice/VoiceConnectionPanel";
 import {
   Hash, Volume2, Video, ChevronDown, LogOut, Settings,
   UserPlus, Plus, MoreHorizontal, Pencil, Trash2, X, User, Sun, Moon, Calendar,
@@ -384,10 +385,19 @@ export function ChannelSidebar() {
         </>
       )}
 
+      {/* Ses baglanti paneli */}
+      <VoiceConnectionPanelWrapper />
+
       {/* Kullanıcı paneli */}
       <UserPanel />
     </div>
   );
+}
+
+function VoiceConnectionPanelWrapper() {
+  const isConnected = useVoiceStore((s) => s.isConnected);
+  if (!isConnected) return null;
+  return <VoiceConnectionPanel />;
 }
 
 function CreateChannelInline({

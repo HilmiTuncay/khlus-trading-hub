@@ -136,7 +136,7 @@ export function MediaRoom({
 }
 
 // Kanal sidebar'da göstermek için katılımcıları takip et
-function ParticipantTracker({ channelId }: { channelId: string }) {
+export function ParticipantTracker({ channelId }: { channelId: string }) {
   const participants = useParticipants();
   const { setParticipants } = useVoiceStore();
 
@@ -153,7 +153,7 @@ function ParticipantTracker({ channelId }: { channelId: string }) {
   return null;
 }
 
-function RoomContent({
+export function RoomContent({
   channelName,
   channelType,
   onDisconnect,

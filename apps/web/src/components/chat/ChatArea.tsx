@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, memo, useCallback } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
+import { useVoiceStore } from "@/stores/voice";
 import { api } from "@/lib/api";
 import { getSocket, connectSocket } from "@/lib/socket";
-import { Hash, Send, Paperclip, X, FileText, Image as ImageIcon, SmilePlus, Search, Pin, Trash2, TrendingUp, TrendingDown, BarChart3, ListChecks } from "lucide-react";
-import { MediaRoom } from "@/components/voice/MediaRoom";
+import { Hash, Send, Paperclip, X, FileText, Image as ImageIcon, SmilePlus, Search, Pin, Trash2, TrendingUp, TrendingDown, BarChart3, ListChecks, PhoneForwarded } from "lucide-react";
+import { RoomContent } from "@/components/voice/MediaRoom";
 import { ChannelVoicePanel } from "@/components/voice/ChannelVoicePanel";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -14,10 +15,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 export function ChatArea() {
   const { activeChannel, activeServer } = useServerStore();
   const { user } = useAuthStore();
+  const voiceState = useVoiceStore();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [inVoiceRoom, setInVoiceRoom] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -31,11 +32,6 @@ export function ChatArea() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevChannelRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Voice room durumunu kanal değiştiğinde sıfırla
-  useEffect(() => {
-    setInVoiceRoom(false);
-  }, [activeChannel?.id]);
 
   // Mesajları yükle (sadece text kanalı)
   useEffect(() => {
@@ -190,25 +186,79 @@ export function ChatArea() {
     );
   }
 
-  // Ses / Video kanalı
+  // Ses / Video kanali
   if (activeChannel.type === "voice" || activeChannel.type === "video") {
-    if (inVoiceRoom) {
+    // Bu kanala bagliysa: tam video grid goster
+    if (voiceState.isConnected && voiceState.activeVoiceChannel?.id === activeChannel.id) {
       return (
-        <MediaRoom
-          channelId={activeChannel.id}
+        <RoomContent
           channelName={activeChannel.name}
           channelType={activeChannel.type}
-          onDisconnect={() => setInVoiceRoom(false)}
+          onDisconnect={() => voiceState.disconnectVoice()}
         />
       );
     }
 
+    // Baska kanala bagliysa: bilgi mesaji
+    if (voiceState.isConnected) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-surface-secondary p-12 text-center">
+            <PhoneForwarded size={36} className="text-accent-yellow" />
+            <h2 className="text-xl font-bold">Baska bir ses kanalina baglisiniz</h2>
+            <p className="text-sm text-text-muted">
+              Su an <span className="font-semibold text-text-primary">{voiceState.activeVoiceChannel?.name}</span> kanalinda baglisiniz.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => voiceState.disconnectVoice()}
+                className="rounded-lg bg-surface-overlay px-6 py-2.5 text-sm font-semibold hover:bg-surface-elevated transition"
+              >
+                Baglantiyi Kes
+              </button>
+              <button
+                onClick={async () => {
+                  voiceState.disconnectVoice();
+                  try {
+                    const res = await api.getLivekitToken(activeChannel.id);
+                    useVoiceStore.getState().connectToVoice(
+                      { id: activeChannel.id, name: activeChannel.name, type: activeChannel.type, serverId: activeServer!.id },
+                      res.token,
+                      res.livekitUrl
+                    );
+                  } catch (err: any) {
+                    console.error("Failed to switch voice channel:", err);
+                  }
+                }}
+                className="rounded-lg bg-accent-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-accent-green/80 transition"
+              >
+                Degistir
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Bagli degilse: katilma paneli
     return (
       <ChannelVoicePanel
         channelId={activeChannel.id}
         channelName={activeChannel.name}
         channelType={activeChannel.type}
-        onJoin={() => setInVoiceRoom(true)}
+        onJoin={async () => {
+          try {
+            const res = await api.getLivekitToken(activeChannel.id);
+            useVoiceStore.getState().connectToVoice(
+              { id: activeChannel.id, name: activeChannel.name, type: activeChannel.type, serverId: activeServer!.id },
+              res.token,
+              res.livekitUrl
+            );
+          } catch (err: any) {
+            console.error("Failed to join voice channel:", err);
+            alert(err.message || "Baglanti hatasi");
+          }
+        }}
       />
     );
   }

@@ -27,8 +27,10 @@ interface ServerState {
   activeServer: any | null;
   activeChannel: any | null;
   isLoading: boolean;
+  isDMMode: boolean;
   loadServers: () => Promise<void>;
   setActiveServer: (serverId: string) => Promise<void>;
+  setDMMode: (active: boolean) => void;
   setActiveChannel: (channel: any) => void;
   createServer: (name: string) => Promise<any>;
   joinServer: (inviteCode: string) => Promise<any>;
@@ -49,6 +51,11 @@ export const useServerStore = create<ServerState>((set, get) => ({
   activeServer: null,
   activeChannel: null,
   isLoading: false,
+  isDMMode: false,
+
+  setDMMode: (active) => {
+    set({ isDMMode: active });
+  },
 
   loadServers: async () => {
     set({ isLoading: true });
@@ -69,6 +76,7 @@ export const useServerStore = create<ServerState>((set, get) => ({
       set({
         activeServer: res.server,
         activeChannel: firstTextChannel || null,
+        isDMMode: false,
       });
     } catch (error) {
       console.error("Failed to load server:", error);
