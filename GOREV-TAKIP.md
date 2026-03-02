@@ -281,8 +281,68 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 5: UX | TAMAMLANDI | ██████████ 100% |
 | Faz 6: Trading Ozel | TAMAMLANDI | ██████████ 100% |
 | Faz 7: Lansman | DEVAM EDIYOR | ████████░░ 80% |
+| Faz 8: Discord Eksikleri | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 9: Masaustu & Mobil | BEKLIYOR | ░░░░░░░░░░ 0% |
 
-**Son Guncelleme:** 2026-03-01
+**Son Guncelleme:** 2026-03-02
+
+---
+
+## Kod Istatistikleri
+| Paket | Satir |
+|-------|-------|
+| Frontend (Next.js) | ~6,300 |
+| Backend (Express) | ~3,400 |
+| Shared (types) | ~250 |
+| **TOPLAM** | **~9,900** |
+
+---
+
+## FAZ 8: Discord Eksikleri — Oncelikli Gelistirmeler
+
+### Yuksek Oncelik
+- [ ] Mesaj duzenleme (edit) — kullanici kendi mesajini duzenleyebilmeli, (duzenlenmi) etiketi gorunmeli
+- [ ] Markdown destegi — **bold**, *italic*, `code`, ```kod blogu```, ~~ustu cizili~~, > alinti
+- [ ] Okunmamis mesaj sayaci — kanal yaninda badge, sunucu ikonunda kirmizi nokta
+- [ ] @mention sistemi — @kullanici yazinca autocomplete, bahsedilen kisiye bildirim
+
+### Orta Oncelik
+- [ ] Bildirim sesleri — yeni mesaj, mention, DM gelince ses efekti
+- [ ] Thread/alt konusmalar — mesaja cevap olarak alt konusma baslama
+- [ ] Mesaj arama filtreleri — tarih araligi, kullanici, kanal bazli filtreleme
+- [ ] Kullanici profil karti/bio — profil popup, hakkinda yazisi, kayit tarihi
+- [ ] Online uye sayisi gostergesi — kanal sidebar'da "X cevrimici" bilgisi
+- [ ] Mesaj yanitlama (reply) — mesaja referansli cevap, atlama linki
+
+### Dusuk Oncelik
+- [ ] Arkadas listesi — arkadas ekleme/cikarma, arkadas DM filtresi
+- [ ] Kullanici engelleme — engelleneni gizleme, mesaj gonderememe
+- [ ] Ozel emoji — sunucuya ozel emoji yukleme
+- [ ] Denetim kaydi (audit log) — sunucu islemleri loglansin
+- [ ] Webhook destegi — dis servislerden mesaj gonderme
+- [ ] Bot entegrasyonu — otomasyon ve bot API
+
+---
+
+## FAZ 9: Masaustu & Mobil Uygulamalar
+
+### Masaustu Uygulamasi (ONCELIKLI)
+- [ ] Teknoloji secimi: Electron vs Tauri (karar verilecek)
+- [ ] Mevcut Next.js web uygulamasini masaustu paketleme
+- [ ] Sistem tepsisi (system tray) entegrasyonu
+- [ ] Yerel bildirimler (native notifications)
+- [ ] Oto-baslangic (startup'ta calistirma)
+- [ ] Oto-guncelleme (auto-update) mekanizmasi
+- [ ] Pencere yonetimi (minimize to tray, always on top)
+- [ ] Klavye kisayollari (global hotkeys — push-to-talk vb.)
+- [ ] Windows/macOS/Linux build'leri
+- [ ] Installer/setup olusturma
+
+### Mobil Uygulama (SONRA)
+- [ ] Teknoloji secimi: React Native vs Capacitor (karar verilecek)
+- [ ] iOS ve Android build'leri
+- [ ] Push notification entegrasyonu
+- [ ] Mobil-uyumlu ses/video
 
 ## Tamamlanan Isler (Faz 5)
 - [x] Responsive layout (mobil sidebar toggle, hamburger menu, ust bar)

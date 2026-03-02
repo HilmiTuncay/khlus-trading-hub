@@ -12,7 +12,6 @@ import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
 import { ConnectionStatus } from "@/components/layout/ConnectionStatus";
-import { SystemLogPanel } from "@/components/layout/SystemLogPanel";
 import { DMSidebar } from "@/components/chat/DMSidebar";
 import { DMChatArea } from "@/components/chat/DMChatArea";
 import { ParticipantTracker } from "@/components/voice/MediaRoom";
@@ -204,7 +203,6 @@ export default function ServersLayout({
       )}
 
       <ConnectionStatus />
-      <SystemLogPanel />
     </div>
   );
 

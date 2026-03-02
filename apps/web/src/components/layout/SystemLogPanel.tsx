@@ -8,6 +8,8 @@ import { useVoiceStore } from "@/stores/voice";
 import { useAuthStore } from "@/stores/auth";
 import { Activity, ChevronDown, ChevronUp } from "lucide-react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+
 interface LogEntry {
   time: string;
   message: string;
@@ -39,7 +41,7 @@ export function SystemLogPanel() {
     setLogs((prev) => [...prev.slice(-29), { time: timestamp(), message, type }]);
   }, []);
 
-  // Socket durumu
+  // Socket durumu (sadece giris yapilmissa)
   useEffect(() => {
     const unsub = onConnectionStatus((status) => {
       setSocketStatus(status);
@@ -48,7 +50,6 @@ export function SystemLogPanel() {
       else addLog("Socket.io yeniden baglaniyor...", "warn");
     });
 
-    // Ilk durum kontrolu
     const s = getSocket();
     if (s?.connected) setSocketStatus("connected");
 
@@ -60,6 +61,7 @@ export function SystemLogPanel() {
     let mounted = true;
     const check = async () => {
       setApiStatus("checking");
+      addLog(`API kontrol: ${API_URL}`, "info");
       const ok = await api.healthCheck();
       if (!mounted) return;
       setApiStatus(ok ? "ok" : "down");
@@ -98,8 +100,6 @@ export function SystemLogPanel() {
     return <span className={`inline-block h-1.5 w-1.5 rounded-full ${colors[status]}`} />;
   };
 
-  if (!user) return null;
-
   return (
     <div className="fixed top-2 right-2 z-[60] select-none" style={{ fontSize: "11px" }}>
       {/* Toggle butonu */}
@@ -109,11 +109,10 @@ export function SystemLogPanel() {
       >
         <Activity className="h-3 w-3" />
         <span>Log</span>
-        {/* Ozet noktalar */}
         {!open && (
           <span className="flex items-center gap-1 ml-1">
             {statusDot(apiStatus === "ok" ? "ok" : apiStatus === "down" ? "err" : "warn")}
-            {statusDot(socketStatus === "connected" ? "ok" : socketStatus === "disconnected" ? "err" : "warn")}
+            {user && statusDot(socketStatus === "connected" ? "ok" : socketStatus === "disconnected" ? "err" : "warn")}
             {voiceConnected && statusDot("ok")}
           </span>
         )}
@@ -126,50 +125,68 @@ export function SystemLogPanel() {
           {/* Durum ozeti */}
           <div className="px-3 py-2 border-b border-white/10 space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-gray-400">API Sunucu</span>
+              <span className="text-gray-400">API URL</span>
+              <span className="text-gray-300 truncate max-w-[160px] text-[10px]">{API_URL}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">API Durum</span>
               <span className="flex items-center gap-1.5">
                 {statusDot(apiStatus === "ok" ? "ok" : apiStatus === "down" ? "err" : "warn")}
                 <span className={apiStatus === "ok" ? "text-green-400" : apiStatus === "down" ? "text-red-400" : "text-yellow-400"}>
-                  {apiStatus === "ok" ? "Aktif" : apiStatus === "down" ? "Kapalı" : "Kontrol..."}
+                  {apiStatus === "ok" ? "Aktif" : apiStatus === "down" ? "Kapali" : "Kontrol..."}
                 </span>
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Socket.io</span>
-              <span className="flex items-center gap-1.5">
-                {statusDot(socketStatus === "connected" ? "ok" : socketStatus === "disconnected" ? "err" : "warn")}
-                <span className={socketStatus === "connected" ? "text-green-400" : socketStatus === "disconnected" ? "text-red-400" : "text-yellow-400"}>
-                  {socketStatus === "connected" ? "Bagli" : socketStatus === "disconnected" ? "Kopuk" : "Baglaniyor"}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Ses (LiveKit)</span>
-              <span className="flex items-center gap-1.5">
-                {statusDot(voiceConnected ? "ok" : "err")}
-                <span className={voiceConnected ? "text-green-400" : "text-gray-500"}>
-                  {voiceConnected ? activeVoiceChannel?.name || "Aktif" : "Kapalı"}
-                </span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between pt-1 border-t border-white/5">
-              <span className="text-gray-400">Sunucular</span>
-              <span className="text-gray-300">{servers.length} adet</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Aktif Sunucu</span>
-              <span className="text-gray-300 truncate max-w-[140px]">{activeServer?.name || "—"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Aktif Kanal</span>
-              <span className="text-gray-300 truncate max-w-[140px]">{activeChannel ? `#${activeChannel.name}` : "—"}</span>
-            </div>
-            {totalVoiceUsers > 0 && (
+            {user && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Socket.io</span>
+                  <span className="flex items-center gap-1.5">
+                    {statusDot(socketStatus === "connected" ? "ok" : socketStatus === "disconnected" ? "err" : "warn")}
+                    <span className={socketStatus === "connected" ? "text-green-400" : socketStatus === "disconnected" ? "text-red-400" : "text-yellow-400"}>
+                      {socketStatus === "connected" ? "Bagli" : socketStatus === "disconnected" ? "Kopuk" : "Baglaniyor"}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Ses (LiveKit)</span>
+                  <span className="flex items-center gap-1.5">
+                    {statusDot(voiceConnected ? "ok" : "err")}
+                    <span className={voiceConnected ? "text-green-400" : "text-gray-500"}>
+                      {voiceConnected ? activeVoiceChannel?.name || "Aktif" : "Kapali"}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                  <span className="text-gray-400">Sunucular</span>
+                  <span className="text-gray-300">{servers.length} adet</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Aktif Sunucu</span>
+                  <span className="text-gray-300 truncate max-w-[140px]">{activeServer?.name || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Aktif Kanal</span>
+                  <span className="text-gray-300 truncate max-w-[140px]">{activeChannel ? `#${activeChannel.name}` : "—"}</span>
+                </div>
+                {totalVoiceUsers > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Seste</span>
+                    <span className="text-gray-300">{totalVoiceUsers} kisi</span>
+                  </div>
+                )}
+              </>
+            )}
+            {!user && (
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Seste</span>
-                <span className="text-gray-300">{totalVoiceUsers} kisi</span>
+                <span className="text-gray-400">Oturum</span>
+                <span className="text-gray-500">Giris yapilmadi</span>
               </div>
             )}
+            <div className="flex items-center justify-between pt-1 border-t border-white/5">
+              <span className="text-gray-400">Toplam Kod</span>
+              <span className="text-gray-300">~10,100 satir</span>
+            </div>
           </div>
 
           {/* Log kayitlari */}

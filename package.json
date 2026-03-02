@@ -16,6 +16,11 @@
     "lint": "npm run lint --workspaces --if-present",
     "db:generate": "npm run db:generate -w apps/api",
     "db:push": "npm run db:push -w apps/api",
-    "db:studio": "npm run db:studio -w apps/api"
+    "db:studio": "npm run db:studio -w apps/api",
+    "dev:desktop": "cd apps/desktop/src-tauri && set TAURI_ENV=1 && cd ../../.. && npx tauri dev",
+    "build:desktop": "cd apps/desktop/src-tauri && set TAURI_ENV=1 && cd ../../.. && npx tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.0"
   }
 }

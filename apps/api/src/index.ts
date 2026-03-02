@@ -31,6 +31,9 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Tauri masaustu uygulamasi originleri
+const TAURI_ORIGINS = ["https://tauri.localhost", "tauri://localhost"];
+
 logger.info({ origins: CORS_ORIGINS }, "CORS izin verilen originler");
 
 // Health check - tüm middleware'lerden ÖNCE, her zaman erişilebilir
@@ -54,7 +57,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Origin yoksa (curl, server-to-server) veya listede varsa izin ver
-      if (!origin || CORS_ORIGINS.includes(origin)) {
+      if (!origin || CORS_ORIGINS.includes(origin) || TAURI_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
         // Vercel preview URL'lerini de kabul et (aynı proje)

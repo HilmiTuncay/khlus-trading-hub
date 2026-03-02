@@ -40,7 +40,9 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
   io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin || corsOrigins.includes(origin)) {
+        // Tauri masaustu uygulamasi originleri
+        const tauriOrigins = ["https://tauri.localhost", "tauri://localhost"];
+        if (!origin || corsOrigins.includes(origin) || tauriOrigins.includes(origin)) {
           callback(null, true);
         } else {
           // Vercel preview URL'lerini kabul et

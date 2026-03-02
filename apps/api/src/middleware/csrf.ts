@@ -3,6 +3,9 @@ import logger from "../lib/logger";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+// Tauri masaustu uygulamasi originleri
+const TAURI_ORIGINS = ["https://tauri.localhost", "tauri://localhost"];
+
 export function csrfProtection(allowedOrigins: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     // Safe method'lar muaf
@@ -25,7 +28,7 @@ export function csrfProtection(allowedOrigins: string[]) {
     }
 
     // İzin verilen origin listesinde mi?
-    if (allowedOrigins.includes(checkOrigin)) {
+    if (allowedOrigins.includes(checkOrigin) || TAURI_ORIGINS.includes(checkOrigin)) {
       return next();
     }
 

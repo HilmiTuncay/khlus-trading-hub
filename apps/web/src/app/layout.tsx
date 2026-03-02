@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SystemLogPanel } from "@/components/layout/SystemLogPanel";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr" className="dark">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <SystemLogPanel />
+      </body>
     </html>
   );
 }
