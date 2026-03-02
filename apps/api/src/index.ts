@@ -112,7 +112,7 @@ app.use("/api/", generalLimiter);
 // Auth rate limit (daha sıkı)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
   message: { error: "Çok fazla giriş denemesi. 15 dakika bekleyin." },
 });
 app.use("/api/auth/login", authLimiter);
