@@ -1,5 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+// Tauri masaustu uygulamasinda credentials: "include" WebView2'de cross-origin sorun cikariyor
+const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
 const MAX_RETRIES = 3;
 const INITIAL_TIMEOUT = 15000; // 15s - keep-alive sayesinde sunucu genelde uyanık
 const RETRY_DELAYS = [1000, 2000, 3000]; // 1s, 2s, 3s - daha kısa aralıklar
@@ -49,7 +52,7 @@ class ApiClient {
         const res = await fetch(`${API_URL}${endpoint}`, {
           ...options,
           headers,
-          credentials: "include",
+          credentials: isTauri ? "omit" : "include",
           signal: controller.signal,
         });
 
@@ -268,7 +271,7 @@ class ApiClient {
         method: "POST",
         headers,
         body: formData,
-        credentials: "include",
+        credentials: isTauri ? "omit" : "include",
         signal: controller.signal,
       });
 
