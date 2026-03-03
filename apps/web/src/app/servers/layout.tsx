@@ -8,6 +8,7 @@ import { useVoiceStore } from "@/stores/voice";
 import { useDMStore } from "@/stores/dm";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
 import { api } from "@/lib/api";
+import { playNotificationSound } from "@/lib/notification";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
@@ -77,11 +78,20 @@ export default function ServersLayout({
       useVoiceStore.getState().removeChannelUser(data.channelId, data.userId);
     });
 
+    // Bildirim sesi: baska kullanicidan gelen yeni mesajlarda cal
+    socket.on("message:new", (msg: any) => {
+      const currentUser = useAuthStore.getState().user;
+      if (msg.userId !== currentUser?.id) {
+        playNotificationSound();
+      }
+    });
+
     return () => {
       api.stopKeepAlive();
       socket.off("voice:channel_users");
       socket.off("voice:user_joined");
       socket.off("voice:user_left");
+      socket.off("message:new");
     };
   }, [user]);
 
