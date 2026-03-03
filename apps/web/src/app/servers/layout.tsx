@@ -9,6 +9,7 @@ import { useDMStore } from "@/stores/dm";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
 import { api } from "@/lib/api";
 import { playNotificationSound } from "@/lib/notification";
+import { useUnreadStore } from "@/stores/unread";
 import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
@@ -78,12 +79,29 @@ export default function ServersLayout({
       useVoiceStore.getState().removeChannelUser(data.channelId, data.userId);
     });
 
-    // Bildirim sesi: baska kullanicidan gelen yeni mesajlarda cal
+    // Bildirim sesi + okunmamis sayac: sadece aliciya, sadece aktif olmayan kanalda
     const handleNotification = (msg: any) => {
       const currentUser = useAuthStore.getState().user;
       const senderId = msg.authorId || msg.author?.id;
-      if (senderId && senderId !== currentUser?.id) {
-        playNotificationSound();
+      if (!senderId || senderId === currentUser?.id) return;
+
+      const { activeChannel, isDMMode } = useServerStore.getState();
+      const { activeConversation } = useDMStore.getState();
+
+      if (msg.conversationId) {
+        // DM mesaji
+        const isViewing = isDMMode && activeConversation?.id === msg.conversationId;
+        if (!isViewing) {
+          useUnreadStore.getState().increment("dm", msg.conversationId);
+          playNotificationSound();
+        }
+      } else if (msg.channelId) {
+        // Kanal mesaji
+        const isViewing = !isDMMode && activeChannel?.id === msg.channelId;
+        if (!isViewing) {
+          useUnreadStore.getState().increment("channel", msg.channelId);
+          playNotificationSound();
+        }
       }
     };
     socket.on("message:new", handleNotification);

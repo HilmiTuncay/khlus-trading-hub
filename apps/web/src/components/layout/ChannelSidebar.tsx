@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useServerStore } from "@/stores/server";
 import { useAuthStore } from "@/stores/auth";
 import { useVoiceStore } from "@/stores/voice";
+import { useUnreadStore } from "@/stores/unread";
 import { ServerSettingsModal } from "@/components/server/ServerSettingsModal";
 import { VoiceConnectionPanel } from "@/components/voice/VoiceConnectionPanel";
 import {
@@ -211,7 +212,7 @@ export function ChannelSidebar() {
             key={channel.id}
             channel={channel}
             isActive={activeChannel?.id === channel.id}
-            onClick={() => setActiveChannel(channel)}
+            onClick={() => { setActiveChannel(channel); useUnreadStore.getState().reset("channel", channel.id); }}
             isOwner={isOwner}
             onDelete={() => handleDeleteChannel(channel.id)}
             onContextMenu={(e) => {
@@ -278,7 +279,7 @@ export function ChannelSidebar() {
                 key={channel.id}
                 channel={channel}
                 isActive={activeChannel?.id === channel.id}
-                onClick={() => setActiveChannel(channel)}
+                onClick={() => { setActiveChannel(channel); useUnreadStore.getState().reset("channel", channel.id); }}
                 isOwner={isOwner}
                 onDelete={() => handleDeleteChannel(channel.id)}
                 onContextMenu={(e) => {
@@ -472,6 +473,8 @@ function ChannelItem({
   const Icon = channelIcons[channel.type as keyof typeof channelIcons] || Hash;
   const isVoiceChannel = channel.type === "voice" || channel.type === "video";
   const channelUsers = useVoiceStore((s) => s.channelUsers[channel.id]);
+  const unreadCount = useUnreadStore((s) => s.channels[channel.id] || 0);
+  const hasUnread = unreadCount > 0 && !isActive;
 
   return (
     <div>
@@ -480,13 +483,20 @@ function ChannelItem({
           "group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition cursor-pointer",
           isActive
             ? "bg-surface-overlay text-text-primary"
+            : hasUnread
+            ? "text-text-primary hover:bg-surface-elevated"
             : "text-text-muted hover:bg-surface-elevated hover:text-text-secondary"
         )}
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
         <Icon size={18} className="shrink-0 opacity-70" />
-        <span className="flex-1 truncate">{channel.name}</span>
+        <span className={clsx("flex-1 truncate", hasUnread && "font-bold")}>{channel.name}</span>
+        {hasUnread && (
+          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-red px-1.5 text-[10px] font-bold text-white">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
         {isVoiceChannel && channelUsers && channelUsers.length > 0 && (
           <span className="text-[10px] text-text-muted">
             {channelUsers.length}

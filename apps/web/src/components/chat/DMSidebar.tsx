@@ -5,6 +5,7 @@ import { useDMStore } from "@/stores/dm";
 import { useAuthStore } from "@/stores/auth";
 import { useVoiceStore } from "@/stores/voice";
 import { useThemeStore } from "@/stores/theme";
+import { useUnreadStore } from "@/stores/unread";
 import { VoiceConnectionPanel } from "@/components/voice/VoiceConnectionPanel";
 import { MessageSquare, Plus, LogOut, Sun, Moon } from "lucide-react";
 import clsx from "clsx";
@@ -80,32 +81,22 @@ export function DMSidebar() {
             <p className="text-xs mt-1">Bir uyeye tiklayarak DM baslatin</p>
           </div>
         ) : (
-          conversations.map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => openConversation(conv)}
-              className={clsx(
-                "flex w-full items-center gap-3 px-4 py-3 transition",
-                activeConversation?.id === conv.id
-                  ? "bg-surface-overlay"
-                  : "hover:bg-surface-overlay"
-              )}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-sm font-bold text-white">
-                {conv.otherUser?.displayName?.charAt(0)?.toUpperCase() || "?"}
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-sm font-semibold text-text-primary">
-                  {conv.otherUser?.displayName || "Kullanici"}
-                </p>
-                {conv.lastMessage && (
-                  <p className="truncate text-xs text-text-muted">
-                    {conv.lastMessage.author?.displayName}: {conv.lastMessage.content}
-                  </p>
-                )}
-              </div>
-            </button>
-          ))
+          conversations.map((conv) => {
+            const unreadCount = useUnreadStore.getState().dms[conv.id] || 0;
+            const isActive = activeConversation?.id === conv.id;
+            const hasUnread = unreadCount > 0 && !isActive;
+
+            return (
+              <DMConversationItem
+                key={conv.id}
+                conv={conv}
+                isActive={isActive}
+                hasUnread={hasUnread}
+                unreadCount={unreadCount}
+                onClick={() => { openConversation(conv); useUnreadStore.getState().reset("dm", conv.id); }}
+              />
+            );
+          })
         )}
       </div>
 
@@ -115,6 +106,59 @@ export function DMSidebar() {
       {/* Kullanici paneli */}
       <UserPanel />
     </div>
+  );
+}
+
+function DMConversationItem({
+  conv,
+  isActive,
+  hasUnread: _hasUnread,
+  unreadCount: _unreadCount,
+  onClick,
+}: {
+  conv: any;
+  isActive: boolean;
+  hasUnread: boolean;
+  unreadCount: number;
+  onClick: () => void;
+}) {
+  // Reactive unread count from store
+  const unreadCount = useUnreadStore((s) => s.dms[conv.id] || 0);
+  const hasUnread = unreadCount > 0 && !isActive;
+
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        "flex w-full items-center gap-3 px-4 py-3 transition",
+        isActive
+          ? "bg-surface-overlay"
+          : hasUnread
+          ? "bg-surface-overlay/50"
+          : "hover:bg-surface-overlay"
+      )}
+    >
+      <div className="relative">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-blue text-sm font-bold text-white">
+          {conv.otherUser?.displayName?.charAt(0)?.toUpperCase() || "?"}
+        </div>
+        {hasUnread && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent-red px-1 text-[10px] font-bold text-white">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <p className={clsx("truncate text-sm text-text-primary", hasUnread ? "font-bold" : "font-semibold")}>
+          {conv.otherUser?.displayName || "Kullanici"}
+        </p>
+        {conv.lastMessage && (
+          <p className={clsx("truncate text-xs", hasUnread ? "text-text-secondary font-semibold" : "text-text-muted")}>
+            {conv.lastMessage.author?.displayName}: {conv.lastMessage.content}
+          </p>
+        )}
+      </div>
+    </button>
   );
 }
 
