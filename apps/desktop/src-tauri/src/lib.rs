@@ -19,7 +19,7 @@ pub fn run() {
 
             let mut builder = TrayIconBuilder::new()
                 .menu(&menu)
-                .menu_on_left_click(false)
+                .show_menu_on_left_click(false)
                 .tooltip("Khlus Trading Hub")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
