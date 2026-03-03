@@ -21,6 +21,7 @@ import { dmRouter } from "./routes/dm";
 import { eventRouter } from "./routes/events";
 import logger from "./lib/logger";
 import { csrfProtection } from "./middleware/csrf";
+import { prisma } from "./db/prisma";
 
 const app = express();
 const httpServer = createServer(app);
