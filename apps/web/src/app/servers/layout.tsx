@@ -79,19 +79,21 @@ export default function ServersLayout({
     });
 
     // Bildirim sesi: baska kullanicidan gelen yeni mesajlarda cal
-    socket.on("message:new", (msg: any) => {
+    const handleNotification = (msg: any) => {
       const currentUser = useAuthStore.getState().user;
-      if (msg.userId !== currentUser?.id) {
+      const senderId = msg.authorId || msg.author?.id;
+      if (senderId && senderId !== currentUser?.id) {
         playNotificationSound();
       }
-    });
+    };
+    socket.on("message:new", handleNotification);
 
     return () => {
       api.stopKeepAlive();
       socket.off("voice:channel_users");
       socket.off("voice:user_joined");
       socket.off("voice:user_left");
-      socket.off("message:new");
+      socket.off("message:new", handleNotification);
     };
   }, [user]);
 

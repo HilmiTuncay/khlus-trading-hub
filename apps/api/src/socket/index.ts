@@ -83,9 +83,29 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     const authenticatedUserId: string = (socket as any).userId;
     logger.info({ socketId: socket.id, userId: authenticatedUserId }, "Socket client bağlandı");
 
-    // Text kanal odası — üyelik kontrolü
+    // Text kanal veya DM odası — üyelik kontrolü
     socket.on("channel:join", async (channelId) => {
       try {
+        // DM konuşması: "dm:<conversationId>" formatında
+        if (channelId.startsWith("dm:")) {
+          const conversationId = channelId.slice(3);
+          const participant = await prisma.conversationParticipant.findUnique({
+            where: {
+              conversationId_userId: {
+                conversationId,
+                userId: authenticatedUserId,
+              },
+            },
+          });
+          if (!participant) {
+            logger.warn({ userId: authenticatedUserId, channelId }, "Yetkisiz DM katılma denemesi");
+            return;
+          }
+          socket.join(`dm:${conversationId}`);
+          return;
+        }
+
+        // Normal kanal
         const channel = await prisma.channel.findUnique({
           where: { id: channelId },
           select: { serverId: true },
@@ -106,7 +126,11 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     });
 
     socket.on("channel:leave", (channelId) => {
-      socket.leave(`channel:${channelId}`);
+      if (channelId.startsWith("dm:")) {
+        socket.leave(channelId);
+      } else {
+        socket.leave(`channel:${channelId}`);
+      }
     });
 
     // Ses/video kanalına katılma — sadece authenticatedUserId, üyelik kontrolü

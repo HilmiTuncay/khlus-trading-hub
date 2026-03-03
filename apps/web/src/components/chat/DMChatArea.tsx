@@ -82,7 +82,14 @@ export function DMChatArea() {
     const content = input.trim();
     setInput("");
     try {
-      await api.sendDM(activeConversation.id, content);
+      const res = await api.sendDM(activeConversation.id, content);
+      // API yanıtından direkt ekle — socket gecikmesini bekleme
+      if (res.message) {
+        setMessages((prev: any[]) => {
+          if (prev.some((m) => m.id === res.message.id)) return prev;
+          return [...prev, res.message];
+        });
+      }
     } catch (err) {
       console.error("Failed to send DM:", err);
       setInput(content);
