@@ -64,7 +64,17 @@ class ApiClient {
 
         if (!res.ok) {
           const error = await res.json().catch(() => ({ error: "Bir hata oluştu" }));
-          throw new Error(error.error || `HTTP ${res.status}`);
+          const status = res.status;
+          const message = error.error || `HTTP ${status}`;
+
+          // 5xx: sunucu hatasi, cold start olabilir — retry et
+          if (status >= 500 && attempt < retries - 1) {
+            lastError = new Error(message);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt] || 5000));
+            continue;
+          }
+
+          throw new Error(message);
         }
 
         return res.json();
@@ -72,14 +82,14 @@ class ApiClient {
         clearTimeout(timeoutId);
         lastError = err;
 
-        // HTTP hataları (4xx, 5xx) retry yapma - bunlar sunucudan geliyor
+        // 4xx HTTP hatalari retry yapma — kullanici/istek hatasi
         if (err instanceof Error && err.message.startsWith("HTTP ")) throw err;
-        // Sunucu yanıt verdiyse (JSON parse hatası hariç) retry yapma
+        // Sunucu yanit verdiyse (JSON parse hatasi haric) retry yapma
         if (err instanceof Error && !["Failed to fetch", "NetworkError when attempting to fetch resource.", "AbortError"].some(m => err.message.includes(m) || (err as any).name === m)) {
           throw new Error(this.translateError(err));
         }
 
-        // Son deneme değilse bekle ve tekrar dene
+        // Son deneme degilse bekle ve tekrar dene
         if (attempt < retries - 1) {
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt] || 5000));
         }
