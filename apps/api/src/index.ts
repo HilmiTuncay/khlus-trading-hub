@@ -24,6 +24,7 @@ import { csrfProtection } from "./middleware/csrf";
 import { prisma } from "./db/prisma";
 
 const app = express();
+app.set("trust proxy", 1); // Render reverse proxy arkasinda
 const httpServer = createServer(app);
 
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
