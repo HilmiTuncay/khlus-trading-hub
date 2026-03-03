@@ -41,7 +41,7 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
     cors: {
       origin: (origin, callback) => {
         // Tauri masaustu uygulamasi originleri
-        const tauriOrigins = ["https://tauri.localhost", "tauri://localhost"];
+        const tauriOrigins = ["https://tauri.localhost", "http://tauri.localhost", "tauri://localhost"];
         if (!origin || corsOrigins.includes(origin) || tauriOrigins.includes(origin)) {
           callback(null, true);
         } else {

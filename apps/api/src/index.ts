@@ -32,7 +32,7 @@ const CORS_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .filter(Boolean);
 
 // Tauri masaustu uygulamasi originleri
-const TAURI_ORIGINS = ["https://tauri.localhost", "tauri://localhost"];
+const TAURI_ORIGINS = ["https://tauri.localhost", "http://tauri.localhost", "tauri://localhost"];
 
 logger.info({ origins: CORS_ORIGINS }, "CORS izin verilen originler");
 

@@ -16,7 +16,7 @@ pub fn run() {
             let quit = MenuItem::with_id(app, "quit", "Cikis", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
 
-            let _tray = TrayIconBuilder::new()
+            let mut builder = TrayIconBuilder::new()
                 .menu(&menu)
                 .tooltip("Khlus Trading Hub")
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -44,8 +44,17 @@ pub fn run() {
                             let _ = window.set_focus();
                         }
                     }
-                })
-                .build(app)?;
+                });
+
+            // Default icon varsa ekle
+            if let Some(icon) = app.default_window_icon().cloned() {
+                builder = builder.icon(icon);
+            }
+
+            // Tray icon basarisiz olursa bile uygulama acilsin
+            if let Err(e) = builder.build(app) {
+                eprintln!("Tray icon olusturulamadi: {}", e);
+            }
 
             Ok(())
         })

@@ -1,7 +1,10 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Tauri masaustu uygulamasinda credentials: "include" WebView2'de cross-origin sorun cikariyor
-const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+// Lazy evaluation: her cagride kontrol et, modul yuklenme sirasinda false kalmasin
+function getIsTauri(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
 
 const MAX_RETRIES = 3;
 const INITIAL_TIMEOUT = 15000; // 15s - keep-alive sayesinde sunucu genelde uyanık
@@ -52,7 +55,7 @@ class ApiClient {
         const res = await fetch(`${API_URL}${endpoint}`, {
           ...options,
           headers,
-          credentials: isTauri ? "omit" : "include",
+          credentials: getIsTauri() ? "omit" : "include",
           signal: controller.signal,
         });
 
@@ -90,7 +93,7 @@ class ApiClient {
   async healthCheck(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s yeterli
+      const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s - Render cold start suresi
       const res = await fetch(`${API_URL}/health`, {
         signal: controller.signal,
         // credentials yok - /health wildcard CORS kullanıyor
@@ -271,7 +274,7 @@ class ApiClient {
         method: "POST",
         headers,
         body: formData,
-        credentials: isTauri ? "omit" : "include",
+        credentials: getIsTauri() ? "omit" : "include",
         signal: controller.signal,
       });
 
