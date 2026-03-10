@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import logger from "../lib/logger";
+import { checkChannelPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 export const searchRouter = Router();
 searchRouter.use(authenticate);
@@ -51,7 +53,15 @@ searchRouter.get("/", async (req: Request, res: Response) => {
         orderBy: { createdAt: "desc" },
         take: 25,
       });
-      results.messages = messages;
+      // Kullanıcının okuma izni olmayan kanallardaki mesajları filtrele
+      const filteredMessages = [];
+      for (const msg of messages) {
+        const hasReadPerm = await checkChannelPermission(req.user!.userId, serverId, msg.channel.id, Permissions.READ_MESSAGES);
+        if (hasReadPerm) {
+          filteredMessages.push(msg);
+        }
+      }
+      results.messages = filteredMessages;
     }
 
     if (type === "members" || type === "all") {

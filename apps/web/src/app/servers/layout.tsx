@@ -14,6 +14,7 @@ import { ServerSidebar } from "@/components/layout/ServerSidebar";
 import { ChannelSidebar } from "@/components/layout/ChannelSidebar";
 import { MemberSidebar } from "@/components/layout/MemberSidebar";
 import { ConnectionStatus } from "@/components/layout/ConnectionStatus";
+import { UpdateBanner } from "@/components/layout/UpdateBanner";
 import { DMSidebar } from "@/components/chat/DMSidebar";
 import { DMChatArea } from "@/components/chat/DMChatArea";
 import { ParticipantTracker } from "@/components/voice/MediaRoom";
@@ -177,6 +178,7 @@ export default function ServersLayout({
 
   const layoutContent = (
     <div className="flex h-screen overflow-hidden">
+      <UpdateBanner />
       {/* Desktop: her zaman goster. Mobil: toggle ile */}
 
       {/* Server + Channel Sidebar / DM Sidebar */}

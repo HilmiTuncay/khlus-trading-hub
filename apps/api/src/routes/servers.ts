@@ -39,7 +39,7 @@ serverRouter.post("/", async (req: Request, res: Response) => {
   try {
     const { name: rawName } = createServerSchema.parse(req.body);
     const name = sanitizeText(rawName);
-    const inviteCode = crypto.randomBytes(4).toString("hex");
+    const inviteCode = crypto.randomBytes(6).toString("hex");
 
     const server = await prisma.$transaction(async (tx: any) => {
       // Create server
@@ -270,7 +270,7 @@ serverRouter.patch("/:serverId/invite-code", async (req: Request, res: Response)
       return res.status(403).json({ error: "Sadece sunucu sahibi davet kodunu yenileyebilir" });
     }
 
-    const newInviteCode = crypto.randomBytes(4).toString("hex");
+    const newInviteCode = crypto.randomBytes(6).toString("hex");
     const updated = await prisma.server.update({
       where: { id: server.id },
       data: { inviteCode: newInviteCode },

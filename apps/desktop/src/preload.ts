@@ -14,4 +14,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getVersion: () => {
     return ipcRenderer.invoke("get-version");
   },
+
+  onUpdateDownloaded: (callback: (version: string) => void) => {
+    ipcRenderer.on("update-downloaded", (_event, version) => callback(version));
+  },
+
+  installUpdate: () => {
+    return ipcRenderer.invoke("install-update");
+  },
 });

@@ -5,6 +5,8 @@ import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
 import logger from "../lib/logger";
 import { sanitizeText } from "../lib/sanitize";
+import { checkChannelPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 export const messageRouter = Router();
 messageRouter.use(authenticate);
@@ -48,6 +50,12 @@ messageRouter.get("/:channelId", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
     }
 
     const cursor = req.query.cursor as string | undefined;
@@ -113,6 +121,12 @@ messageRouter.post("/", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasSendPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.SEND_MESSAGES);
+    if (!hasSendPerm) {
+      return res.status(403).json({ error: "Bu kanala mesaj gönderme izniniz yok" });
     }
 
     const message = await prisma.message.create({
@@ -186,6 +200,12 @@ messageRouter.post("/signal", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasSendPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.SEND_MESSAGES);
+    if (!hasSendPerm) {
+      return res.status(403).json({ error: "Bu kanala mesaj gönderme izniniz yok" });
     }
 
     const symbol = sanitizeText(data.symbol);
@@ -264,6 +284,12 @@ messageRouter.post("/poll", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
+    // Kanal izni kontrolü
+    const hasSendPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.SEND_MESSAGES);
+    if (!hasSendPerm) {
+      return res.status(403).json({ error: "Bu kanala mesaj gönderme izniniz yok" });
+    }
+
     const question = sanitizeText(data.question);
     const options = data.options.map((opt) => sanitizeText(opt));
 
@@ -312,6 +338,14 @@ messageRouter.put("/:messageId/vote", async (req: Request, res: Response) => {
 
     if (!message || message.type !== "poll") {
       return res.status(404).json({ error: "Anket bulunamadı" });
+    }
+
+    // Üyelik kontrolü
+    const member = await prisma.member.findUnique({
+      where: { userId_serverId: { userId: req.user!.userId, serverId: message.channel.serverId } },
+    });
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
     const metadata = message.metadata as any;
@@ -414,6 +448,12 @@ messageRouter.put("/:messageId/pin", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
+    // Kanal izni kontrolü
+    const hasPinPerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.PIN_MESSAGES);
+    if (!hasPinPerm) {
+      return res.status(403).json({ error: "Bu kanalda mesaj pinleme izniniz yok" });
+    }
+
     const updated = await prisma.message.update({
       where: { id: message.id },
       data: {
@@ -463,6 +503,12 @@ messageRouter.get("/:channelId/pinned", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
     }
 
     const messages = await prisma.message.findMany({

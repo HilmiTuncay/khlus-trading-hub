@@ -29,13 +29,10 @@ export function initUpdater() {
 
   autoUpdater.on("update-downloaded", (info) => {
     log(`Güncelleme indirildi: v${info.version}`);
-    if (Notification.isSupported()) {
-      const notification = new Notification({
-        title: "Güncelleme Hazır",
-        body: `v${info.version} indirildi. Uygulama kapandığında otomatik yüklenecek.`,
-      });
-      notification.show();
-    }
+    // Tüm pencerelere güncelleme bilgisi gönder
+    BrowserWindow.getAllWindows().forEach((win) => {
+      win.webContents.send("update-downloaded", info.version);
+    });
   });
 
   autoUpdater.on("error", (err) => {

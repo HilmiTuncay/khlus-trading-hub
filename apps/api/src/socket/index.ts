@@ -9,6 +9,8 @@ import type {
 import { prisma } from "../db/prisma";
 import logger from "../lib/logger";
 import { env } from "../config/env";
+import { checkChannelPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -46,7 +48,9 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
           const isVercelPreview = corsOrigins.some((o) => {
             const domain = o.replace("https://", "").replace("http://", "");
             const baseName = domain.split(".")[0];
-            return origin.includes(baseName) && origin.includes("vercel.app");
+            const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(`^https://${escaped}(-[a-z0-9]+)*\\.vercel\\.app$`);
+            return re.test(origin);
           });
           callback(null, isVercelPreview);
         }
@@ -116,6 +120,14 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
           logger.warn({ userId: authenticatedUserId, channelId }, "Yetkisiz kanal katılma denemesi");
           return;
         }
+
+        // Kanal izni kontrolü
+        const hasReadPerm = await checkChannelPermission(authenticatedUserId, channel.serverId, channelId, Permissions.READ_MESSAGES);
+        if (!hasReadPerm) {
+          logger.warn({ userId: authenticatedUserId, channelId }, "Kanal okuma izni yok");
+          return;
+        }
+
         socket.join(`channel:${channelId}`);
       } catch (error) {
         logger.error({ err: error, channelId }, "channel:join hatası");
@@ -145,6 +157,13 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
         });
         if (!member) {
           logger.warn({ userId, channelId }, "Yetkisiz voice katılma denemesi");
+          return;
+        }
+
+        // Kanal izni kontrolü
+        const hasConnectPerm = await checkChannelPermission(userId, channel.serverId, channelId, Permissions.CONNECT);
+        if (!hasConnectPerm) {
+          logger.warn({ userId, channelId }, "Voice bağlanma izni yok");
           return;
         }
 
@@ -247,20 +266,36 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
       }
     });
 
-    // Typing — rate limiting, "unknown" fallback kaldırıldı
-    socket.on("typing:start", (channelId) => {
+    // Typing — rate limiting + üyelik kontrolü
+    socket.on("typing:start", async (channelId) => {
       if (!typingRateLimit(socket.id)) return;
-      socket.to(`channel:${channelId}`).emit("typing:start", {
-        userId: authenticatedUserId,
-        channelId,
-      });
+      try {
+        const channel = await prisma.channel.findUnique({ where: { id: channelId }, select: { serverId: true } });
+        if (!channel) return;
+        const member = await prisma.member.findUnique({
+          where: { userId_serverId: { userId: authenticatedUserId, serverId: channel.serverId } },
+        });
+        if (!member) return;
+        socket.to(`channel:${channelId}`).emit("typing:start", {
+          userId: authenticatedUserId,
+          channelId,
+        });
+      } catch {}
     });
 
-    socket.on("typing:stop", (channelId) => {
-      socket.to(`channel:${channelId}`).emit("typing:stop", {
-        userId: authenticatedUserId,
-        channelId,
-      });
+    socket.on("typing:stop", async (channelId) => {
+      try {
+        const channel = await prisma.channel.findUnique({ where: { id: channelId }, select: { serverId: true } });
+        if (!channel) return;
+        const member = await prisma.member.findUnique({
+          where: { userId_serverId: { userId: authenticatedUserId, serverId: channel.serverId } },
+        });
+        if (!member) return;
+        socket.to(`channel:${channelId}`).emit("typing:stop", {
+          userId: authenticatedUserId,
+          channelId,
+        });
+      } catch {}
     });
 
     // Bağlantı koptuğunda voice'dan da çık

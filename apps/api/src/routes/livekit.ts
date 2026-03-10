@@ -3,6 +3,8 @@ import { AccessToken } from "livekit-server-sdk";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import logger from "../lib/logger";
+import { checkChannelPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 export const livekitRouter = Router();
 livekitRouter.use(authenticate);
@@ -46,6 +48,12 @@ livekitRouter.post("/token", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasConnectPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.CONNECT);
+    if (!hasConnectPerm) {
+      return res.status(403).json({ error: "Bu ses/video kanalına bağlanma izniniz yok" });
     }
 
     const user = await prisma.user.findUnique({

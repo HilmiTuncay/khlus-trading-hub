@@ -27,7 +27,15 @@ export function csrfProtection(allowedOrigins: string[]) {
       return res.status(403).json({ error: "İstek kaynağı doğrulanamadı" });
     }
 
-    const checkOrigin = origin || (referer ? new URL(referer).origin : null);
+    let refererOrigin: string | null = null;
+    if (referer) {
+      try {
+        refererOrigin = new URL(referer).origin;
+      } catch {
+        return res.status(403).json({ error: "Geçersiz Referer başlığı" });
+      }
+    }
+    const checkOrigin = origin || refererOrigin;
 
     if (!checkOrigin) {
       logger.warn({ method: req.method, url: req.originalUrl }, "CSRF koruması: Origin belirlenemedi");
@@ -43,7 +51,9 @@ export function csrfProtection(allowedOrigins: string[]) {
     const isVercelPreview = allowedOrigins.some((o) => {
       const domain = o.replace("https://", "").replace("http://", "");
       const baseName = domain.split(".")[0];
-      return checkOrigin.includes(baseName) && checkOrigin.includes("vercel.app");
+      const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`^https://${escaped}(-[a-z0-9]+)*\\.vercel\\.app$`);
+      return re.test(checkOrigin);
     });
 
     if (isVercelPreview) {

@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("HATA: Seed scripti production ortamında çalıştırılamaz!");
+    process.exit(1);
+  }
+
   const newPassword = process.argv[2];
   if (!newPassword) {
     console.log("Kullanım: npx tsx src/db/reset-password.ts <yeni-sifre>");

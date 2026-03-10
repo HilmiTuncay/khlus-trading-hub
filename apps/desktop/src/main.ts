@@ -8,6 +8,7 @@ import {
   shell,
 } from "electron";
 import path from "path";
+import { autoUpdater } from "electron-updater";
 import { createTray, updateTrayBadge, setIsQuitting, getIsQuitting } from "./tray";
 import { initUpdater } from "./updater";
 import { loadWindowState, saveWindowState } from "./window-state";
@@ -156,6 +157,11 @@ if (!gotTheLock) {
     // IPC: Uygulama versiyonu
     ipcMain.handle("get-version", () => {
       return app.getVersion();
+    });
+
+    // IPC: Güncellemeyi yükle ve yeniden başlat
+    ipcMain.handle("install-update", () => {
+      autoUpdater.quitAndInstall();
     });
   });
 

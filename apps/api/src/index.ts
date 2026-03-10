@@ -63,7 +63,9 @@ app.use(
         const isVercelPreview = CORS_ORIGINS.some((o) => {
           const domain = o.replace("https://", "").replace("http://", "");
           const baseName = domain.split(".")[0]; // ör: khlus-trading-hub
-          return origin.includes(baseName) && origin.includes("vercel.app");
+          const escaped = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const re = new RegExp(`^https://${escaped}(-[a-z0-9]+)*\\.vercel\\.app$`);
+          return re.test(origin);
         });
         if (isVercelPreview) {
           callback(null, true);

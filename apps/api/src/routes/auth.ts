@@ -98,7 +98,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün - refresh token süresiyle eşleşmeli
     });
 
     res.status(201).json({
@@ -160,7 +160,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün - refresh token süresiyle eşleşmeli
     });
 
     res.json({
@@ -201,7 +201,7 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 gün - refresh token süresiyle eşleşmeli
     });
 
     res.json({ token: tokens.token });
