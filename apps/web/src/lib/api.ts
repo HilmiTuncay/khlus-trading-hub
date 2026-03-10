@@ -251,7 +251,7 @@ class ApiClient {
   // Messages
   async getMessages(channelId: string, cursor?: string) {
     const params = cursor ? `?cursor=${cursor}` : "";
-    return this.request<{ messages: any[] }>(`/api/messages/${channelId}${params}`);
+    return this.request<{ messages: any[]; hasMore?: boolean }>(`/api/messages/${channelId}${params}`);
   }
 
   async sendMessage(channelId: string, content: string, attachments?: any[]) {
@@ -417,7 +417,7 @@ class ApiClient {
 
   async getDMMessages(conversationId: string, cursor?: string) {
     const params = cursor ? `?cursor=${cursor}` : "";
-    return this.request<{ messages: any[] }>(`/api/dm/${conversationId}/messages${params}`);
+    return this.request<{ messages: any[]; hasMore?: boolean }>(`/api/dm/${conversationId}/messages${params}`);
   }
 
   async sendDM(conversationId: string, content: string) {

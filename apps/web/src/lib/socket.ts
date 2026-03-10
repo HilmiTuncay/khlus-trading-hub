@@ -68,6 +68,7 @@ export function getSocket() {
       const voiceState = voiceStateGetter?.();
       const userId = userIdGetter?.();
       if (voiceState?.isConnected && voiceState.activeVoiceChannel && userId) {
+        console.log("[Socket] Reconnect sonrası voice:join yeniden gönderiliyor, kanal:", voiceState.activeVoiceChannel.id);
         socket!.emit("voice:join", {
           channelId: voiceState.activeVoiceChannel.id,
           userId,

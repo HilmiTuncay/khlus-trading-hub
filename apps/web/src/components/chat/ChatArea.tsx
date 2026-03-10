@@ -29,7 +29,11 @@ export function ChatArea() {
   const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
   const [showSignalForm, setShowSignalForm] = useState(false);
   const [showPollForm, setShowPollForm] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isLoadingOlderRef = useRef(false);
   const prevChannelRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,6 +46,7 @@ export function ChatArea() {
       try {
         const res = await api.getMessages(activeChannel.id);
         setMessages(res.messages);
+        setHasMore(res.hasMore ?? res.messages.length >= 50);
       } catch (err) {
         console.error("Failed to load messages:", err);
       } finally {
@@ -107,9 +112,64 @@ export function ChatArea() {
     };
   }, [activeChannel]);
 
-  // Otomatik kaydırma
+  // Eski mesajları yükle (infinite scroll)
+  const loadOlderMessages = useCallback(async () => {
+    if (!activeChannel || !hasMore || loadingMore || messages.length === 0) return;
+    const oldestMessage = messages[0];
+    if (!oldestMessage) return;
+
+    setLoadingMore(true);
+    isLoadingOlderRef.current = true;
+    const container = scrollContainerRef.current;
+    const prevScrollHeight = container?.scrollHeight || 0;
+
+    try {
+      const res = await api.getMessages(activeChannel.id, oldestMessage.id);
+      setHasMore(res.hasMore ?? res.messages.length >= 50);
+      if (res.messages.length > 0) {
+        setMessages(prev => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMsgs = res.messages.filter((m: any) => !existingIds.has(m.id));
+          return [...newMsgs, ...prev];
+        });
+        // Scroll pozisyonunu koru
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight - prevScrollHeight;
+          }
+          isLoadingOlderRef.current = false;
+        });
+      } else {
+        isLoadingOlderRef.current = false;
+      }
+    } catch (err) {
+      console.error("Failed to load older messages:", err);
+      isLoadingOlderRef.current = false;
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeChannel, hasMore, loadingMore, messages]);
+
+  // Scroll event listener - üste scroll edildiğinde eski mesajları yükle
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (container.scrollTop < 100 && hasMore && !loadingMore) {
+        loadOlderMessages();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore, loadingMore, loadOlderMessages]);
+
+  // Otomatik kaydırma (sadece yeni mesajlarda, eski mesaj yüklerken değil)
+  useEffect(() => {
+    if (!isLoadingOlderRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -398,7 +458,7 @@ export function ChatArea() {
       )}
 
       {/* Mesajlar */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
@@ -411,7 +471,16 @@ export function ChatArea() {
             <p className="mt-1 text-sm">İlk mesajı siz gönderin.</p>
           </div>
         ) : (
-          messages.map((msg) => (
+          <>
+          {loadingMore && (
+            <div className="flex justify-center py-2">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            </div>
+          )}
+          {!hasMore && messages.length > 0 && (
+            <div className="text-center py-4 text-text-muted text-xs">Kanalın başlangıcına ulaştınız</div>
+          )}
+          {messages.map((msg) => (
             <MessageItem
               key={msg.id}
               msg={msg}
@@ -426,7 +495,8 @@ export function ChatArea() {
               }}
               canDelete={msg.authorId === user?.id}
             />
-          ))
+          ))}
+          </>
         )}
         <div ref={bottomRef} />
       </div>

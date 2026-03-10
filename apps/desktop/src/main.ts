@@ -53,6 +53,7 @@ function createWindow() {
 
   // X butonuna basinca pencere durumunu kaydet ve tray'e kucult
   mainWindow.on("close", (e) => {
+    console.log("[App] Pencere kapatma isteği, isQuitting:", getIsQuitting());
     if (mainWindow) saveWindowState(mainWindow);
     if (!getIsQuitting()) {
       e.preventDefault();
@@ -94,6 +95,7 @@ if (!gotTheLock) {
 } else {
   app.on("second-instance", () => {
     // Ikinci instance acilmaya calisilinca mevcut pencereyi goster
+    console.log("[App] İkinci instance algılandı, mevcut pencere gösteriliyor");
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
@@ -102,6 +104,8 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    console.log("[App] Uygulama başlatıldı, isDev:", isDev);
+
     // Mikrofon, kamera ve ekran paylaşımı izinlerini otomatik onayla (LiveKit için gerekli)
     const allowedPermissions = ["media", "mediaKeySystem", "midi", "display-capture"];
     session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
@@ -110,8 +114,10 @@ if (!gotTheLock) {
     session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
       return allowedPermissions.includes(permission);
     });
+    console.log("[App] Media izinleri yapılandırıldı");
 
     createWindow();
+    console.log("[App] Pencere oluşturuldu");
     createTray(mainWindow!);
     initUpdater();
 

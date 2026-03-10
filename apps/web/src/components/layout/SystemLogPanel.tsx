@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { onConnectionStatus, getSocket, type ConnectionStatusType } from "@/lib/socket";
 import { api } from "@/lib/api";
 import { useServerStore } from "@/stores/server";
@@ -92,6 +92,15 @@ export function SystemLogPanel() {
       addLog(`Ses: ${activeVoiceChannel.name} baglanildi`, "success");
     }
   }, [voiceConnected, activeVoiceChannel?.id, addLog]);
+
+  // Voice baglanti kesilmesi
+  const prevVoiceRef = useRef(false);
+  useEffect(() => {
+    if (prevVoiceRef.current && !voiceConnected) {
+      addLog("Ses: bağlantı kesildi", "warn");
+    }
+    prevVoiceRef.current = voiceConnected;
+  }, [voiceConnected, addLog]);
 
   const totalVoiceUsers = Object.values(channelUsers).reduce((sum, arr) => sum + arr.length, 0);
 

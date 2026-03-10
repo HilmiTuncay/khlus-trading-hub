@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useDMStore } from "@/stores/dm";
 import { useAuthStore } from "@/stores/auth";
 import { connectSocket } from "@/lib/socket";
@@ -23,7 +23,11 @@ export function DMChatArea() {
     loadConversations,
   } = useDMStore();
   const [input, setInput] = useState("");
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isLoadingOlderRef = useRef(false);
 
   // targetUserId ile otomatik konusma baslat
   useEffect(() => {
@@ -31,9 +35,69 @@ export function DMChatArea() {
     createNewConversation(targetUserId);
   }, [targetUserId, createNewConversation]);
 
-  // Otomatik kaydir
+  // Konuşma değiştiğinde hasMore sıfırla
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setHasMore(true);
+    isLoadingOlderRef.current = false;
+  }, [activeConversation?.id]);
+
+  // Eski mesajları yükle (infinite scroll)
+  const loadOlderMessages = useCallback(async () => {
+    if (!activeConversation || !hasMore || loadingMore || messages.length === 0) return;
+    const oldestMessage = messages[0];
+    if (!oldestMessage) return;
+
+    setLoadingMore(true);
+    isLoadingOlderRef.current = true;
+    const container = scrollContainerRef.current;
+    const prevScrollHeight = container?.scrollHeight || 0;
+
+    try {
+      const res = await api.getDMMessages(activeConversation.id, oldestMessage.id);
+      setHasMore(res.hasMore ?? res.messages.length >= 50);
+      if (res.messages.length > 0) {
+        setMessages((prev: any[]) => {
+          const existingIds = new Set(prev.map(m => m.id));
+          const newMsgs = res.messages.filter((m: any) => !existingIds.has(m.id));
+          return [...newMsgs, ...prev];
+        });
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight - prevScrollHeight;
+          }
+          isLoadingOlderRef.current = false;
+        });
+      } else {
+        isLoadingOlderRef.current = false;
+      }
+    } catch (err) {
+      console.error("Failed to load older DM messages:", err);
+      isLoadingOlderRef.current = false;
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeConversation, hasMore, loadingMore, messages, setMessages]);
+
+  // Scroll event listener
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (container.scrollTop < 100 && hasMore && !loadingMore) {
+        loadOlderMessages();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore, loadingMore, loadOlderMessages]);
+
+  // Otomatik kaydir (sadece yeni mesajlarda)
+  useEffect(() => {
+    if (!isLoadingOlderRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   // Socket dinleme
@@ -131,7 +195,7 @@ export function DMChatArea() {
       </div>
 
       {/* Mesajlar */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
@@ -141,7 +205,16 @@ export function DMChatArea() {
             <p className="text-sm">Henuz mesaj yok. Ilk mesaji gonderin!</p>
           </div>
         ) : (
-          messages.map((msg) => (
+          <>
+          {loadingMore && (
+            <div className="flex justify-center py-2">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            </div>
+          )}
+          {!hasMore && messages.length > 0 && (
+            <div className="text-center py-4 text-text-muted text-xs">Konusmanin basina ulastiniz</div>
+          )}
+          {messages.map((msg) => (
             <div key={msg.id} className="mb-3 flex gap-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-surface-primary">
                 {msg.author?.displayName?.charAt(0)?.toUpperCase() || "?"}
@@ -158,7 +231,8 @@ export function DMChatArea() {
                 <p className="text-sm text-text-secondary break-words">{msg.content}</p>
               </div>
             </div>
-          ))
+          ))}
+          </>
         )}
         <div ref={bottomRef} />
       </div>

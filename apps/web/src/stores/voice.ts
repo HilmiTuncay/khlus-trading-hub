@@ -99,6 +99,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
   },
 
   connectToVoice: (channel, token, url) => {
+    console.log("[Voice] Ses bağlantısı başlatılıyor:", channel.name, "URL:", url);
     set({
       isConnected: true,
       activeVoiceChannel: channel,
@@ -110,6 +111,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
 
   disconnectVoice: () => {
     const state = get();
+    console.log("[Voice] Ses bağlantısı sonlandırılıyor:", state.activeVoiceChannel?.name);
     const userId = useAuthStore.getState().user?.id;
     if (state.activeVoiceChannel && userId) {
       getSocket()?.emit("voice:leave", { channelId: state.activeVoiceChannel.id, userId });

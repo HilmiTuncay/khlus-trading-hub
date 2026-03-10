@@ -1,49 +1,56 @@
 import { autoUpdater } from "electron-updater";
-import { dialog, app } from "electron";
+import { app, BrowserWindow, Notification } from "electron";
+
+function log(msg: string) {
+  console.log(`[Updater] ${msg}`);
+}
 
 export function initUpdater() {
-  // Packaged uygulama degilse (dev modda) guncelleme kontrolu yapma
   if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = false;
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
+  autoUpdater.on("checking-for-update", () => {
+    log("Güncelleme kontrol ediliyor...");
+  });
+
   autoUpdater.on("update-available", (info) => {
-    dialog
-      .showMessageBox({
-        type: "info",
-        title: "Güncelleme Mevcut",
-        message: `Yeni sürüm mevcut: v${info.version}. İndirmek ister misiniz?`,
-        buttons: ["İndir", "Daha Sonra"],
-        defaultId: 0,
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          autoUpdater.downloadUpdate();
-        }
-      });
+    log(`Güncelleme mevcut: v${info.version}`);
   });
 
-  autoUpdater.on("update-downloaded", () => {
-    dialog
-      .showMessageBox({
-        type: "info",
+  autoUpdater.on("update-not-available", () => {
+    log("Uygulama güncel.");
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    log(`İndiriliyor: %${Math.round(progress.percent)} (${(progress.bytesPerSecond / 1024).toFixed(0)} KB/s)`);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    log(`Güncelleme indirildi: v${info.version}`);
+    if (Notification.isSupported()) {
+      const notification = new Notification({
         title: "Güncelleme Hazır",
-        message: "Güncelleme indirildi. Yüklemek için uygulama yeniden başlatılacak.",
-        buttons: ["Şimdi Yeniden Başlat", "Daha Sonra"],
-        defaultId: 0,
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          autoUpdater.quitAndInstall();
-        }
+        body: `v${info.version} indirildi. Uygulama kapandığında otomatik yüklenecek.`,
       });
+      notification.show();
+    }
   });
 
-  autoUpdater.on("error", () => {
-    // Guncelleme hatalarini sessizce gecis
+  autoUpdater.on("error", (err) => {
+    log(`Güncelleme hatası: ${err.message}`);
   });
 
-  // Baslatildiginda guncelleme kontrolu yap
-  autoUpdater.checkForUpdates();
+  // İlk kontrolü yap
+  autoUpdater.checkForUpdates().catch((err) => {
+    log(`İlk kontrol hatası: ${err.message}`);
+  });
+
+  // Her 30 dakikada bir kontrol et
+  setInterval(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      log(`Periyodik kontrol hatası: ${err.message}`);
+    });
+  }, 30 * 60 * 1000);
 }

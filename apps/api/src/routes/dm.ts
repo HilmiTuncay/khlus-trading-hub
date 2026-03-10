@@ -158,7 +158,7 @@ dmRouter.get("/:conversationId/messages", async (req: Request, res: Response) =>
       },
     });
 
-    res.json({ messages: messages.reverse() });
+    res.json({ messages: messages.reverse(), hasMore: messages.length === 50 });
   } catch (error) {
     logger.error({ err: error }, "DM mesaj getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });

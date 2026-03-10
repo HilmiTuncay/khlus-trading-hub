@@ -81,7 +81,7 @@ messageRouter.get("/:channelId", async (req: Request, res: Response) => {
       return { ...msg, reactions: grouped };
     });
 
-    res.json({ messages: messagesWithGroupedReactions.reverse() });
+    res.json({ messages: messagesWithGroupedReactions.reverse(), hasMore: messages.length === limit });
   } catch (error) {
     logger.error({ err: error }, "Mesaj getirme hatası");
     res.status(500).json({ error: "Sunucu hatası" });

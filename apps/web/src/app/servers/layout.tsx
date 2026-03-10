@@ -265,8 +265,12 @@ export default function ServersLayout({
         connect={true}
         video={false}
         audio={true}
-        onDisconnected={() => useVoiceStore.getState().disconnectVoice()}
+        onDisconnected={() => {
+          console.log("[Voice] LiveKit bağlantısı koptu");
+          useVoiceStore.getState().disconnectVoice();
+        }}
         onConnected={() => {
+          console.log("[Voice] LiveKit bağlantısı kuruldu, kanal:", activeVoiceChannel.name);
           useVoiceStore.getState().joinChannel(activeVoiceChannel.id);
           const userId = useAuthStore.getState().user?.id;
           if (userId) {
@@ -274,10 +278,10 @@ export default function ServersLayout({
           }
         }}
         onError={(error) => {
-          console.error("LiveKit bağlantı hatası:", error);
-          // Sadece kritik hatalarda disconnect et, geçici ağ hatalarını tolere et
           const msg = error?.message?.toLowerCase() || "";
           const isCritical = msg.includes("permission") || msg.includes("not allowed") || msg.includes("token") || msg.includes("forbidden");
+          console.error("[Voice] LiveKit hatası:", error?.message, "| Kritik mi:", isCritical);
+          // Sadece kritik hatalarda disconnect et, geçici ağ hatalarını tolere et
           if (isCritical) {
             useVoiceStore.getState().disconnectVoice();
           }
