@@ -4,7 +4,7 @@
 Discord'un kapanmasindan etkilenen trader topluluklari icin yenilikci, dusuk maliyetli, yuksek performansli bir iletisim platformu.
 
 **Hedef:** Traderlarin Discord sonrasi magduriyetini gidermek.
-**Site:** [khlustrading.net](https://khlustrading.net)
+**Site:** https://khlus-trading-hub.vercel.app/
 
 ---
 
@@ -282,9 +282,9 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 | Faz 6: Trading Ozel | TAMAMLANDI | ██████████ 100% |
 | Faz 7: Lansman | DEVAM EDIYOR | ████████░░ 80% |
 | Faz 8: Discord Eksikleri | BEKLIYOR | ░░░░░░░░░░ 0% |
-| Faz 9: Masaustu & Mobil | BEKLIYOR | ░░░░░░░░░░ 0% |
+| Faz 9: Masaustu & Mobil | DEVAM EDIYOR | ██████░░░░ 60% |
 
-**Son Guncelleme:** 2026-03-02
+**Son Guncelleme:** 2026-03-03
 
 ---
 
@@ -326,17 +326,19 @@ ChannelPermissions: id, channel_id, role_id, allow (bigint), deny (bigint)
 
 ## FAZ 9: Masaustu & Mobil Uygulamalar
 
-### Masaustu Uygulamasi (ONCELIKLI)
-- [ ] Teknoloji secimi: Electron vs Tauri (karar verilecek)
-- [ ] Mevcut Next.js web uygulamasini masaustu paketleme
-- [ ] Sistem tepsisi (system tray) entegrasyonu
-- [ ] Yerel bildirimler (native notifications)
+### Masaustu Uygulamasi — Electron (AKTIF)
+- [x] Teknoloji secimi: Electron (Tauri v2 WebView2 credential sorunlari nedeniyle gecildi)
+- [x] Vercel URL yukleme mimarisi (BrowserWindow → khlus-trading-hub.vercel.app)
+- [x] Sistem tepsisi (system tray) entegrasyonu
+- [x] Yerel bildirimler (native notifications) — IPC ile
+- [x] Oto-guncelleme (auto-update) — electron-updater, GitHub Releases
+- [x] Pencere yonetimi (close → hide-to-tray, Ctrl+Shift+K toggle)
+- [x] Single instance lock
+- [x] Tauri workaround temizligi (frontend + backend)
+- [ ] npm install ve build testi
 - [ ] Oto-baslangic (startup'ta calistirma)
-- [ ] Oto-guncelleme (auto-update) mekanizmasi
-- [ ] Pencere yonetimi (minimize to tray, always on top)
-- [ ] Klavye kisayollari (global hotkeys — push-to-talk vb.)
-- [ ] Windows/macOS/Linux build'leri
-- [ ] Installer/setup olusturma
+- [ ] Push-to-talk global shortcut
+- [ ] Installer/setup olusturma ve dagilim
 
 ### Mobil Uygulama (SONRA)
 - [ ] Teknoloji secimi: React Native vs Capacitor (karar verilecek)

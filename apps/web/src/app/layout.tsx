@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SystemLogPanel } from "@/components/layout/SystemLogPanel";
-import { TauriContextMenuBlocker } from "@/components/layout/TauriContextMenuBlocker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +18,6 @@ export default function RootLayout({
   return (
     <html lang="tr" className="dark">
       <body className={inter.className}>
-        <TauriContextMenuBlocker />
         {children}
         <SystemLogPanel />
       </body>

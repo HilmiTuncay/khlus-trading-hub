@@ -11,5 +11,7 @@ coverage/
 .DS_Store
 Thumbs.db
 .claude/
-target/
+apps/desktop/dist/
+apps/desktop/build/
+apps/desktop/src-tauri/
 apps/web/out/

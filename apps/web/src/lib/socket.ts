@@ -2,8 +2,6 @@ import { io, Socket } from "socket.io-client";
 import type { ServerToClientEvents, ClientToServerEvents } from "@khlus/shared";
 import { api } from "@/lib/api";
 
-const isTauriEnv = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
@@ -41,7 +39,7 @@ export function getSocket() {
     if (!token) return null;
 
     socket = io(API_URL, {
-      withCredentials: !isTauriEnv,
+      withCredentials: true,
       autoConnect: false,
       auth: { token },
       reconnection: true,

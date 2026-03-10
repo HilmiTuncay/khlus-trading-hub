@@ -1,0 +1,32 @@
+appId: com.khlus.trading-hub
+productName: Khlus Trading Hub
+copyright: Copyright © 2024 Khlus
+
+directories:
+  output: build
+
+files:
+  - dist/**/*
+  - resources/**/*
+  - package.json
+
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  installerHeaderIcon: resources/icon.ico
+  deleteAppDataOnUninstall: false
+  shortcutName: Khlus Trading Hub
+
+publish:
+  provider: github
+  owner: khlus
+  repo: trading-hub
