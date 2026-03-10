@@ -4,20 +4,27 @@ import {
   globalShortcut,
   ipcMain,
   Notification,
+  shell,
 } from "electron";
 import path from "path";
 import { createTray, updateTrayBadge, setIsQuitting, getIsQuitting } from "./tray";
 import { initUpdater } from "./updater";
+import { loadWindowState, saveWindowState } from "./window-state";
 
 const PRODUCTION_URL = "https://khlus-trading-hub.vercel.app";
+const DEV_URL = "http://localhost:3000";
 const isDev = !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const state = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: state.width,
+    height: state.height,
+    x: state.x,
+    y: state.y,
     minWidth: 900,
     minHeight: 600,
     icon: path.join(__dirname, "..", "resources", "icon.ico"),
@@ -31,16 +38,21 @@ function createWindow() {
     },
   });
 
-  // Production URL'yi yukle
-  mainWindow.loadURL(PRODUCTION_URL);
+  if (state.isMaximized) {
+    mainWindow.maximize();
+  }
+
+  // Dev modda localhost, production'da vercel URL
+  mainWindow.loadURL(isDev ? DEV_URL : PRODUCTION_URL);
 
   // Pencere hazir oldugunda goster (beyaz ekran engellenir)
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
   });
 
-  // X butonuna basinca tray'e kucult (kapatma)
+  // X butonuna basinca pencere durumunu kaydet ve tray'e kucult
   mainWindow.on("close", (e) => {
+    if (mainWindow) saveWindowState(mainWindow);
     if (!getIsQuitting()) {
       e.preventDefault();
       mainWindow?.hide();
@@ -52,9 +64,19 @@ function createWindow() {
     e.preventDefault();
   });
 
-  // Yeni pencere acilmasini engelle (linkler mevcut pencerede acilsin)
-  mainWindow.webContents.setWindowOpenHandler(() => {
+  // Harici linkleri varsayilan tarayicida ac
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  // Uygulama URL'si disina navigasyonu engelle, tarayicida ac
+  const appUrl = isDev ? DEV_URL : PRODUCTION_URL;
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith(appUrl)) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   // DevTools sadece dev modda

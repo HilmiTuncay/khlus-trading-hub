@@ -9,6 +9,19 @@ interface UnreadState {
   getTotalDMs: () => number;
 }
 
+function syncTrayBadge(state: { channels: Record<string, number>; dms: Record<string, number> }) {
+  if (typeof window === "undefined") return;
+  const totalChannels = Object.values(state.channels).reduce((sum, n) => sum + n, 0);
+  const totalDMs = Object.values(state.dms).reduce((sum, n) => sum + n, 0);
+  const total = totalChannels + totalDMs;
+  window.electronAPI?.setTrayBadge(total);
+  if (total > 0) {
+    document.title = `(${total}) Khlus Trading Hub`;
+  } else {
+    document.title = "Khlus Trading Hub";
+  }
+}
+
 export const useUnreadStore = create<UnreadState>((set, get) => ({
   channels: {},
   dms: {},
@@ -20,6 +33,7 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
         [key]: { ...state[key], [id]: (state[key][id] || 0) + 1 },
       };
     });
+    syncTrayBadge(get());
   },
 
   reset: (type, id) => {
@@ -29,6 +43,7 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
       delete next[id];
       return { [key]: next };
     });
+    syncTrayBadge(get());
   },
 
   getCount: (type, id) => {

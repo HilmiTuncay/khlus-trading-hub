@@ -96,6 +96,11 @@ export default function ServersLayout({
         if (!isViewing) {
           useUnreadStore.getState().increment("dm", msg.conversationId);
           playNotificationSound();
+          if (!document.hasFocus()) {
+            const senderName = msg.author?.displayName || msg.author?.username || "Birisi";
+            const preview = msg.content?.length > 80 ? msg.content.slice(0, 80) + "..." : (msg.content || "Yeni mesaj");
+            window.electronAPI?.showNotification(`${senderName} sana mesaj gonderdi`, preview);
+          }
         }
       } else if (msg.channelId) {
         // Kanal mesaji
@@ -103,6 +108,14 @@ export default function ServersLayout({
         if (!isViewing) {
           useUnreadStore.getState().increment("channel", msg.channelId);
           playNotificationSound();
+          if (!document.hasFocus()) {
+            const senderName = msg.author?.displayName || msg.author?.username || "Birisi";
+            const preview = msg.content?.length > 80 ? msg.content.slice(0, 80) + "..." : (msg.content || "Yeni mesaj");
+            const serverState = useServerStore.getState();
+            const ch = serverState.activeServer?.channels?.find((c: any) => c.id === msg.channelId);
+            const channelName = ch?.name || "kanal";
+            window.electronAPI?.showNotification(`${senderName} — #${channelName}`, preview);
+          }
         }
       }
     };
