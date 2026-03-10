@@ -25,3 +25,11 @@ Kapsam: apps/api, apps/web, apps/desktop, packages/shared
 - CSRF referer parse işlemini try/catch ile sarmalayın.
 - Refresh cookie süresini refresh token süresiyle hizalayın.
 - Seed/reset scriptlerini sadece development ortamında çalışacak şekilde sınırlandırın.
+
+## Ek Bulgular (Son İnceleme)
+- [P3] typing olaylarında kanal izni kontrolü yok: typing:start/stop yalnızca üyelik kontrol ediyor. READ_MESSAGES izni olmayan kanallara sahte “yazıyor” bildirimi gönderilebilir. (D:\khlus hub\khlus-trading-hub\apps\api\src\socket\index.ts:270)
+- [P2] Poll oylarında kanal izni kontrolü yok: Üyelik kontrolü var ama kanal izinleri (READ_MESSAGES gibi) kontrol edilmiyor; kanal erişimi kısıtlı kullanıcı mesaj ID biliyorsa oy kullanabilir. (D:\khlus hub\khlus-trading-hub\apps\api\src\routes\messages.ts:329)
+- [P2] Ek dosya göndermede ATTACH_FILES izni atlanıyor: Mesaj gönderimi için SEND_MESSAGES kontrolü var ama ek dosya varsa ATTACH_FILES zorunlu değil. (D:\khlus hub\khlus-trading-hub\apps\api\src\routes\messages.ts:126)
+- [P2] Reaksiyonlarda kanal izni kontrolü yok: PUT/GET /api/reactions sadece sunucu üyeliğini kontrol ediyor; READ_MESSAGES ve ADD_REACTIONS gibi kanal izinleri uygulanmıyor. (D:\khlus hub\khlus-trading-hub\apps\api\src\routes\reactions.ts:16)
+- [P2] Kanal metadata erişimi kanal izninden bağımsız: GET /api/channels/:channelId sadece üyelik kontrol ediyor; gizli kanallar için en az READ_MESSAGES kontrolü eklenmeli. (D:\khlus hub\khlus-trading-hub\apps\api\src\routes\channels.ts:65)
+- [P2] voice:get_users kanal bazlı CONNECT iznini dikkate almıyor: Sunucu üyesi herkes tüm voice/video kanallarındaki kullanıcı listesini alabiliyor. (D:\khlus hub\khlus-trading-hub\apps\api\src\socket\index.ts:221)
