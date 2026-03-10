@@ -9,6 +9,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 let isRefreshing = false;
 
+// Token getter - store'dan alınacak, circular dependency önlemek için callback
+let tokenGetter: (() => string | null) | null = null;
+
+export function setTokenGetter(getter: () => string | null) {
+  tokenGetter = getter;
+}
+
+function getToken(): string | null {
+  return tokenGetter ? tokenGetter() : null;
+}
+
 export type ConnectionStatusType = "connected" | "connecting" | "disconnected";
 type ConnectionStatusListener = (status: ConnectionStatusType) => void;
 const statusListeners = new Set<ConnectionStatusListener>();
@@ -26,7 +37,7 @@ export function getSocket() {
   if (typeof window === "undefined") return null;
 
   if (!socket) {
-    const token = localStorage.getItem("token");
+    const token = getToken();
     if (!token) return null;
 
     socket = io(API_URL, {
@@ -50,8 +61,8 @@ export function getSocket() {
     });
 
     socket.io.on("reconnect_attempt", () => {
-      // Her reconnect'te güncel token'ı kullan
-      const freshToken = localStorage.getItem("token");
+      // Her reconnect'te güncel token'ı kullan (memory'den)
+      const freshToken = getToken();
       if (freshToken && socket) {
         socket.auth = { token: freshToken };
       }
@@ -71,7 +82,6 @@ export function getSocket() {
         try {
           const res = await api.refreshToken();
           api.setToken(res.token);
-          localStorage.setItem("token", res.token);
           // Yeni token ile tekrar bağlan
           if (socket) {
             socket.auth = { token: res.token };
@@ -94,8 +104,8 @@ export function connectSocket() {
   const s = getSocket();
   if (!s) return null as any;
   if (!s.connected) {
-    // Bağlanmadan önce token'ı güncelle
-    const freshToken = localStorage.getItem("token");
+    // Bağlanmadan önce token'ı güncelle (memory'den)
+    const freshToken = getToken();
     if (freshToken) {
       s.auth = { token: freshToken };
     }

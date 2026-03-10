@@ -120,11 +120,19 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
-// Static files (uploads) - Content-Disposition header ile
+// Static files (uploads) - Güvenlik header'ları ile
 app.use(
   "/uploads",
-  (_req, res, next) => {
+  (req, res, next) => {
+    // Dosya içeriğinin tarayıcı tarafından yorumlanmasını engelle
     res.setHeader("X-Content-Type-Options", "nosniff");
+    // İndirme olarak sun (tarayıcıda çalıştırma yerine)
+    // Sadece resimler inline gösterilebilir, diğerleri attachment
+    const ext = path.extname(req.path).toLowerCase();
+    const inlineAllowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    if (!inlineAllowed.includes(ext)) {
+      res.setHeader("Content-Disposition", "attachment");
+    }
     next();
   },
   express.static(path.join(process.cwd(), "uploads"))

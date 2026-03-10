@@ -28,6 +28,28 @@ const sendMessageSchema = z.object({
 // GET /api/messages/:channelId
 messageRouter.get("/:channelId", async (req: Request, res: Response) => {
   try {
+    // Önce kanalı bul ve üyelik kontrolü yap
+    const channel = await prisma.channel.findUnique({
+      where: { id: req.params.channelId },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ error: "Kanal bulunamadı" });
+    }
+
+    const member = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId: channel.serverId,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     const cursor = req.query.cursor as string | undefined;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
 
@@ -421,6 +443,28 @@ messageRouter.put("/:messageId/pin", async (req: Request, res: Response) => {
 // GET /api/messages/:channelId/pinned - Pinlenmiş mesajları getir
 messageRouter.get("/:channelId/pinned", async (req: Request, res: Response) => {
   try {
+    // Önce kanalı bul ve üyelik kontrolü yap
+    const channel = await prisma.channel.findUnique({
+      where: { id: req.params.channelId },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ error: "Kanal bulunamadı" });
+    }
+
+    const member = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId: channel.serverId,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     const messages = await prisma.message.findMany({
       where: {
         channelId: req.params.channelId,

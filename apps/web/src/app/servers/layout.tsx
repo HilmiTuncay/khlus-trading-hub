@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useServerStore } from "@/stores/server";
 import { useVoiceStore } from "@/stores/voice";
 import { useDMStore } from "@/stores/dm";
-import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import { connectSocket, disconnectSocket, getSocket, setTokenGetter } from "@/lib/socket";
 import { api } from "@/lib/api";
 import { playNotificationSound } from "@/lib/notification";
 import { useUnreadStore } from "@/stores/unread";
@@ -37,6 +37,8 @@ export default function ServersLayout({
   const [showMembers, setShowMembers] = useState(false);
 
   useEffect(() => {
+    // Socket için token getter'ı bağla
+    setTokenGetter(() => useAuthStore.getState().token);
     loadUser();
   }, [loadUser]);
 

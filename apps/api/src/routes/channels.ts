@@ -74,6 +74,20 @@ channelRouter.get("/:channelId", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Kanal bulunamadı" });
     }
 
+    // Üyelik kontrolü
+    const member = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId: channel.serverId,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     res.json({ channel });
   } catch (error) {
     logger.error({ err: error }, "Kanal getirme hatası");

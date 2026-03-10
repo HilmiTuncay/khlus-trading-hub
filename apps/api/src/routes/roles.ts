@@ -25,8 +25,24 @@ const updateRoleSchema = z.object({
 // GET /api/roles/:serverId - Sunucunun tüm rolleri
 roleRouter.get("/:serverId", async (req: Request, res: Response) => {
   try {
+    const serverId = req.params.serverId as string;
+
+    // Üyelik kontrolü
+    const member = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     const roles = await prisma.role.findMany({
-      where: { serverId: req.params.serverId as string },
+      where: { serverId },
       include: {
         _count: { select: { members: true } },
       },

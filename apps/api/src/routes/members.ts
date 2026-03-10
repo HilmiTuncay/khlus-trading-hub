@@ -13,8 +13,24 @@ memberRouter.use(authenticate);
 // GET /api/members/:serverId
 memberRouter.get("/:serverId", async (req: Request, res: Response) => {
   try {
+    const serverId = req.params.serverId as string;
+
+    // Üyelik kontrolü
+    const currentMember = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId,
+        },
+      },
+    });
+
+    if (!currentMember) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     const members = await prisma.member.findMany({
-      where: { serverId: req.params.serverId as string },
+      where: { serverId },
       include: {
         user: {
           select: {

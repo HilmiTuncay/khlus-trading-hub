@@ -100,6 +100,29 @@ reactionRouter.put("/", async (req: Request, res: Response) => {
 // GET /api/reactions/:messageId - Mesajın reaksiyonları
 reactionRouter.get("/:messageId", async (req: Request, res: Response) => {
   try {
+    // Önce mesajı bul ve üyelik kontrolü yap
+    const message = await prisma.message.findUnique({
+      where: { id: req.params.messageId as string },
+      select: { channel: { select: { serverId: true } } },
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: "Mesaj bulunamadı" });
+    }
+
+    const member = await prisma.member.findUnique({
+      where: {
+        userId_serverId: {
+          userId: req.user!.userId,
+          serverId: message.channel.serverId,
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
     const reactions = await prisma.reaction.findMany({
       where: { messageId: req.params.messageId as string },
     });

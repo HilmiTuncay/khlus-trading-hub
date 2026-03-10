@@ -15,16 +15,26 @@ export function csrfProtection(allowedOrigins: string[]) {
 
     const origin = req.headers.origin;
     const referer = req.headers.referer;
+    const hasAuthHeader = !!req.headers.authorization;
 
-    // Origin veya Referer yoksa izin ver (curl, server-to-server)
-    if (!origin && !referer) {
+    // Authorization header varsa CSRF kontrolünü atla
+    // (Tarayıcı form submit ile Authorization header gönderemez)
+    if (hasAuthHeader) {
       return next();
+    }
+
+    // Origin veya Referer yoksa ve Authorization yok → CSRF riski, reddet
+    // (Eski davranış: izin veriyordu, bu güvenlik açığıydı)
+    if (!origin && !referer) {
+      logger.warn({ method: req.method, url: req.originalUrl }, "CSRF koruması: Origin/Referer ve Authorization header eksik");
+      return res.status(403).json({ error: "İstek kaynağı doğrulanamadı" });
     }
 
     const checkOrigin = origin || (referer ? new URL(referer).origin : null);
 
     if (!checkOrigin) {
-      return next();
+      logger.warn({ method: req.method, url: req.originalUrl }, "CSRF koruması: Origin belirlenemedi");
+      return res.status(403).json({ error: "İstek kaynağı doğrulanamadı" });
     }
 
     // İzin verilen origin listesinde mi?

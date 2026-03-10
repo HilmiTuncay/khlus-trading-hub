@@ -8,8 +8,7 @@ import type {
 } from "@khlus/shared";
 import { prisma } from "../db/prisma";
 import logger from "../lib/logger";
-
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production";
+import { env } from "../config/env";
 
 let io: Server<ClientToServerEvents, ServerToClientEvents>;
 
@@ -71,7 +70,7 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
       return next(new Error("Authentication required"));
     }
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
       (socket as any).userId = decoded.userId;
       next();
     } catch {

@@ -6,11 +6,9 @@ import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import logger from "../lib/logger";
 import { sanitizeText } from "../lib/sanitize";
+import { env } from "../config/env";
 
 export const authRouter = Router();
-
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me-in-production";
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "dev-refresh-secret-change-me";
 
 const registerSchema = z.object({
   email: z.string().email("Geçerli bir email adresi girin"),
@@ -61,8 +59,8 @@ function clearLoginAttempts(email: string) {
 }
 
 function generateTokens(userId: string, email: string) {
-  const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: "7d" });
-  const refreshToken = jwt.sign({ userId, email }, JWT_REFRESH_SECRET, {
+  const token = jwt.sign({ userId, email }, env.JWT_SECRET, { expiresIn: "7d" });
+  const refreshToken = jwt.sign({ userId, email }, env.JWT_REFRESH_SECRET, {
     expiresIn: "30d",
   });
   return { token, refreshToken };
@@ -192,7 +190,7 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Refresh token bulunamadı" });
     }
 
-    const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as {
+    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
       userId: string;
       email: string;
     };

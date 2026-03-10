@@ -30,14 +30,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     const res = await api.login({ email, password });
     api.setToken(res.token);
-    localStorage.setItem("token", res.token);
     set({ user: res.user, token: res.token });
   },
 
   register: async (data) => {
     const res = await api.register(data);
     api.setToken(res.token);
-    localStorage.setItem("token", res.token);
     set({ user: res.user, token: res.token });
   },
 
@@ -48,7 +46,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       // ignore
     }
     api.setToken(null);
-    localStorage.removeItem("token");
     resetSocket();
     set({ user: null, token: null });
   },
@@ -64,38 +61,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        set({ isLoading: false });
-        return;
-      }
-      api.setToken(token);
+      // Refresh token httpOnly cookie'de - yeni access token al
+      const refreshRes = await api.refreshToken();
+      api.setToken(refreshRes.token);
       const res = await api.getMe();
-      set({ user: res.user, token, isLoading: false, hasLoadedOnce: true, loadError: null });
+      set({ user: res.user, token: refreshRes.token, isLoading: false, hasLoadedOnce: true, loadError: null });
     } catch (err: any) {
       const msg = err?.message || "";
-      if (msg.includes("401") || msg.includes("403")) {
-        // Token expired — refresh dene
-        try {
-          const refreshRes = await api.refreshToken();
-          api.setToken(refreshRes.token);
-          localStorage.setItem("token", refreshRes.token);
-          // Yeni token ile tekrar dene
-          const res = await api.getMe();
-          set({ user: res.user, token: refreshRes.token, isLoading: false, hasLoadedOnce: true, loadError: null });
-          // Socket'i yeni token ile yeniden başlat
-          resetSocket();
-        } catch {
-          // Refresh de başarısız — tam logout
-          localStorage.removeItem("token");
-          api.setToken(null);
-          resetSocket();
-          set({ user: null, token: null, isLoading: false, loadError: null });
-        }
-      } else {
-        // Network hatası — token'i koru, retry imkanı sun
-        set({ isLoading: false, loadError: msg || "Bağlantı hatası" });
-      }
+      // Refresh başarısız — oturum yok
+      api.setToken(null);
+      resetSocket();
+      set({ user: null, token: null, isLoading: false, loadError: null });
     }
   },
 }));
