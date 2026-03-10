@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useServerStore } from "@/stores/server";
 import { useVoiceStore } from "@/stores/voice";
 import { useDMStore } from "@/stores/dm";
-import { connectSocket, disconnectSocket, getSocket, setTokenGetter } from "@/lib/socket";
+import { connectSocket, disconnectSocket, getSocket, setTokenGetter, setVoiceStateGetter, setUserIdGetter } from "@/lib/socket";
 import { api } from "@/lib/api";
 import { playNotificationSound } from "@/lib/notification";
 import { useUnreadStore } from "@/stores/unread";
@@ -37,8 +37,13 @@ export default function ServersLayout({
   const [showMembers, setShowMembers] = useState(false);
 
   useEffect(() => {
-    // Socket için token getter'ı bağla
+    // Socket için getter'ları bağla
     setTokenGetter(() => useAuthStore.getState().token);
+    setVoiceStateGetter(() => {
+      const { isConnected, activeVoiceChannel } = useVoiceStore.getState();
+      return { isConnected, activeVoiceChannel };
+    });
+    setUserIdGetter(() => useAuthStore.getState().user?.id || null);
     loadUser();
   }, [loadUser]);
 
@@ -270,7 +275,12 @@ export default function ServersLayout({
         }}
         onError={(error) => {
           console.error("LiveKit bağlantı hatası:", error);
-          useVoiceStore.getState().disconnectVoice();
+          // Sadece kritik hatalarda disconnect et, geçici ağ hatalarını tolere et
+          const msg = error?.message?.toLowerCase() || "";
+          const isCritical = msg.includes("permission") || msg.includes("not allowed") || msg.includes("token") || msg.includes("forbidden");
+          if (isCritical) {
+            useVoiceStore.getState().disconnectVoice();
+          }
         }}
         style={{ display: "contents" }}
       >

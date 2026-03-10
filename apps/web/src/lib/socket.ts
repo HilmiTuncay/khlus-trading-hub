@@ -10,8 +10,20 @@ let isRefreshing = false;
 // Token getter - store'dan alınacak, circular dependency önlemek için callback
 let tokenGetter: (() => string | null) | null = null;
 
+// Voice state getter - reconnect sonrası voice:join re-emit için
+let voiceStateGetter: (() => { isConnected: boolean; activeVoiceChannel: { id: string } | null } | null) | null = null;
+let userIdGetter: (() => string | null) | null = null;
+
 export function setTokenGetter(getter: () => string | null) {
   tokenGetter = getter;
+}
+
+export function setVoiceStateGetter(getter: () => { isConnected: boolean; activeVoiceChannel: { id: string } | null } | null) {
+  voiceStateGetter = getter;
+}
+
+export function setUserIdGetter(getter: () => string | null) {
+  userIdGetter = getter;
 }
 
 function getToken(): string | null {
@@ -52,6 +64,15 @@ export function getSocket() {
 
     socket.on("connect", () => {
       notifyStatus("connected");
+      // Socket reconnect sonrası voice state'i koru
+      const voiceState = voiceStateGetter?.();
+      const userId = userIdGetter?.();
+      if (voiceState?.isConnected && voiceState.activeVoiceChannel && userId) {
+        socket!.emit("voice:join", {
+          channelId: voiceState.activeVoiceChannel.id,
+          userId,
+        });
+      }
     });
 
     socket.on("disconnect", () => {

@@ -4,6 +4,7 @@ import {
   globalShortcut,
   ipcMain,
   Notification,
+  session,
   shell,
 } from "electron";
 import path from "path";
@@ -101,6 +102,15 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
+    // Mikrofon, kamera ve ekran paylaşımı izinlerini otomatik onayla (LiveKit için gerekli)
+    const allowedPermissions = ["media", "mediaKeySystem", "midi", "display-capture"];
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+      callback(allowedPermissions.includes(permission));
+    });
+    session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+      return allowedPermissions.includes(permission);
+    });
+
     createWindow();
     createTray(mainWindow!);
     initUpdater();
