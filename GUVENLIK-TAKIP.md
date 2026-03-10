@@ -1,36 +1,27 @@
-# Security Review Task Tracker
+﻿# Güvenlik ve Mantık Notları
 
-Date: 2026-03-10
-Scope: apps/api, apps/web, apps/desktop
+Tarih: 2026-03-11
+Kapsam: apps/api, apps/web, apps/desktop, packages/shared
 
-## Findings Summary
-- [H] Missing authorization checks on read endpoints (IDOR risk).
-- [H] JWT secrets fall back to default values if env vars are missing.
-- [H] Electron desktop CSP is not configured.
-- [M] Access token stored in localStorage on web client.
-- [M] CSRF protection allows requests with no Origin/Referer on unsafe methods.
-- [M] WebSocket typing events do not validate channel membership.
-- [M] Seed script contains fixed test passwords and a fixed invite code.
-- [L] Invite code entropy is low (8 hex chars) and join has no dedicated rate limit.
-- [L] Upload validation relies on client-provided mimetype only.
+## Kritik / Yüksek
+- Kanal izinleri (READ_MESSAGES, SEND_MESSAGES, CONNECT vb.) pratikte uygulanmıyor. Sunucu üyesi olan herkes kanal izinlerinden bağımsız olarak mesaj okuyup yazabiliyor; arama ve LiveKit tokenı da aynı şekilde izinleri atlıyor.
+  Etkilenen örnekler: /api/messages (GET/POST), /api/messages/:channelId/pinned, /api/search, /api/livekit/token, socket channel:join ve voice:join.
+- /api/messages/:messageId/vote endpointinde üyelik kontrolü yok. MessageId bilen herhangi bir giriş yapmış kullanıcı oylama yapabiliyor.
 
-## Tasks
-- [ ] Add membership/permission checks for read endpoints:
-  - GET /api/channels/:channelId
-  - GET /api/messages/:channelId
-  - GET /api/messages/:channelId/pinned
-  - GET /api/reactions/:messageId
-  - GET /api/members/:serverId
-  - GET /api/roles/:serverId
-- [ ] Enforce channel-level permission checks where applicable (messages read, pinned, reactions, poll vote).
-- [ ] Remove default JWT secrets; fail fast if JWT_SECRET / JWT_REFRESH_SECRET are missing and wire env schema in startup.
-- [ ] Enable a restrictive CSP in Electron (allow only required origins, disable unsafe-eval/inline).
-- [ ] Move access token out of localStorage (httpOnly cookie or in-memory + refresh flow).
-- [ ] Tighten CSRF protection for unsafe methods:
-  - Require Origin/Referer, or
-  - Add CSRF token (double-submit or server-side token), and
-  - Revisit SameSite settings for refresh cookies.
-- [ ] Validate membership for WebSocket typing events or gate typing to joined rooms only.
-- [ ] Guard seed/reset scripts for non-production use (NODE_ENV check) and remove fixed credentials for prod.
-- [ ] Increase invite code entropy (>= 16 hex chars) and add a dedicated rate limit for join.
-- [ ] Harden uploads: verify file signatures, consider Content-Disposition: attachment, and/or store outside web root.
+## Orta
+- Socket typing olaylarında (typing:start/stop) üyelik veya odaya katılım kontrolü yok; kanal ID’si bilinen kanallara sahte yazıyor bildirimi yapılabilir.
+- CORS/CSRF tarafında Vercel preview izin kontrolü “baseName içeriyor + vercel.app” mantığıyla yapılıyor. Aynı baseName’i içeren farklı bir Vercel projesi istemeden izinli sayılabilir.
+- CSRF middleware’inde referer için new URL(referer) hataya düşerse yakalanmıyor; hatalı Referer başlığı 500 üretebilir (DoS yüzeyi).
+- Refresh token cookie süresi 7 gün, refresh token süresi 30 gün. Bu durum kullanıcıyı beklenenden erken oturum dışına atar (mantık hatası).
+
+## Düşük
+- Seed ve reset scriptlerinde sabit e‑posta/şifre/davet kodu var. Üretimde yanlışlıkla çalıştırılırsa güvenlik riski doğurur (NODE_ENV kontrolü önerilir).
+- Davet kodu 8 hex (2^32) ve join için ayrı bir rate limit yok. Genel limiter var ama davet brute‑force için daha sıkı limit önerilir.
+
+## Önerilen Aksiyonlar (Özet)
+- Kanal bazlı izinleri gerçekten enforce edin: mesaj okuma/yazma, pin/reaction, arama, LiveKit, socket join/typing.
+- Anket oylama endpointine üyelik kontrolü ekleyin.
+- Vercel preview allowlist’i daha daraltın (tam host eşleşmesi veya güvenli regex).
+- CSRF referer parse işlemini try/catch ile sarmalayın.
+- Refresh cookie süresini refresh token süresiyle hizalayın.
+- Seed/reset scriptlerini sadece development ortamında çalışacak şekilde sınırlandırın.
