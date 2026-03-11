@@ -254,7 +254,7 @@ export function ChatArea() {
         <RoomContent
           channelName={activeChannel.name}
           channelType={activeChannel.type}
-          onDisconnect={() => voiceState.disconnectVoice()}
+          onDisconnect={() => voiceState.disconnectVoice("Kullanici ayrildi")}
         />
       );
     }
@@ -271,14 +271,14 @@ export function ChatArea() {
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => voiceState.disconnectVoice()}
+                onClick={() => voiceState.disconnectVoice("Kullanici ayrildi")}
                 className="rounded-lg bg-surface-overlay px-6 py-2.5 text-sm font-semibold hover:bg-surface-elevated transition"
               >
                 Baglantiyi Kes
               </button>
               <button
                 onClick={async () => {
-                  voiceState.disconnectVoice();
+                  voiceState.disconnectVoice("Kanal degistiriliyor");
                   try {
                     const res = await api.getLivekitToken(activeChannel.id);
                     useVoiceStore.getState().connectToVoice(

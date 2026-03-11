@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth";
 import { useServerStore } from "@/stores/server";
@@ -36,6 +36,43 @@ export default function ServersLayout({
   const { isConnected, activeVoiceChannel, livekitToken, livekitUrl } = useVoiceStore();
   const [showSidebar, setShowSidebar] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+
+  // Voice reconnection state
+  const [voiceKey, setVoiceKey] = useState(0);
+  const reconnectAttemptsRef = useRef(0);
+  const isReconnectingRef = useRef(false);
+  const MAX_VOICE_RECONNECT = 3;
+
+  const handleVoiceReconnect = useCallback(async () => {
+    const store = useVoiceStore.getState();
+    if (!store.isConnected || !store.activeVoiceChannel || isReconnectingRef.current) return;
+
+    const channel = store.activeVoiceChannel;
+    reconnectAttemptsRef.current++;
+    const attempt = reconnectAttemptsRef.current;
+
+    if (attempt > MAX_VOICE_RECONNECT) {
+      console.error(`[Voice] ${MAX_VOICE_RECONNECT} deneme sonrasi baglanti kurulamadi`);
+      store.disconnectVoice(`${channel.name} — ${MAX_VOICE_RECONNECT} deneme basarisiz`);
+      reconnectAttemptsRef.current = 0;
+      return;
+    }
+
+    isReconnectingRef.current = true;
+    console.log(`[Voice] Yeniden baglaniliyor (${attempt}/${MAX_VOICE_RECONNECT})...`);
+
+    try {
+      const res = await api.getLivekitToken(channel.id);
+      useVoiceStore.getState().connectToVoice(channel, res.token, res.livekitUrl);
+      setVoiceKey((k) => k + 1);
+    } catch (err: any) {
+      console.error("[Voice] Token yenileme hatasi:", err?.message);
+      useVoiceStore.getState().disconnectVoice(`${channel.name} — token alinamadi: ${err?.message || "bilinmiyor"}`);
+      reconnectAttemptsRef.current = 0;
+    } finally {
+      isReconnectingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     // Socket için getter'ları bağla
@@ -262,17 +299,21 @@ export default function ServersLayout({
   if (isConnected && livekitToken && livekitUrl && activeVoiceChannel) {
     return (
       <LiveKitRoom
+        key={`voice-${voiceKey}`}
         token={livekitToken}
         serverUrl={livekitUrl}
         connect={true}
         video={false}
         audio={true}
         onDisconnected={() => {
-          console.log("[Voice] LiveKit bağlantısı koptu");
-          useVoiceStore.getState().disconnectVoice();
+          // Kullanici kendisi ciktiysa (isConnected zaten false) tekrar baglanma
+          if (!useVoiceStore.getState().isConnected) return;
+          console.warn("[Voice] LiveKit baglantisi beklenmedik sekilde koptu, yeniden deneniyor...");
+          handleVoiceReconnect();
         }}
         onConnected={() => {
-          console.log("[Voice] LiveKit bağlantısı kuruldu, kanal:", activeVoiceChannel.name);
+          reconnectAttemptsRef.current = 0;
+          console.log("[Voice] LiveKit baglantisi kuruldu, kanal:", activeVoiceChannel.name);
           useVoiceStore.getState().joinChannel(activeVoiceChannel.id);
           const userId = useAuthStore.getState().user?.id;
           if (userId) {
@@ -282,10 +323,10 @@ export default function ServersLayout({
         onError={(error) => {
           const msg = error?.message?.toLowerCase() || "";
           const isCritical = msg.includes("permission") || msg.includes("not allowed") || msg.includes("token") || msg.includes("forbidden");
-          console.error("[Voice] LiveKit hatası:", error?.message, "| Kritik mi:", isCritical);
-          // Sadece kritik hatalarda disconnect et, geçici ağ hatalarını tolere et
+          console.error("[Voice] LiveKit hatasi:", error?.message, "| Kritik mi:", isCritical);
           if (isCritical) {
-            useVoiceStore.getState().disconnectVoice();
+            const channelName = useVoiceStore.getState().activeVoiceChannel?.name || "";
+            useVoiceStore.getState().disconnectVoice(`${channelName} — ${error?.message || "yetki hatasi"}`);
           }
         }}
         style={{ display: "contents" }}

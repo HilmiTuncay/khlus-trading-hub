@@ -28,6 +28,8 @@ interface VoiceState {
   activeVoiceChannel: ActiveVoiceChannel | null;
   livekitToken: string | null;
   livekitUrl: string | null;
+  // Disconnect nedeni (log paneli icin)
+  lastDisconnectReason: string | null;
   // Aksiyonlar
   joinChannel: (channelId: string) => void;
   leaveChannel: () => void;
@@ -36,7 +38,7 @@ interface VoiceState {
   addChannelUser: (channelId: string, user: VoiceUser) => void;
   removeChannelUser: (channelId: string, userId: string) => void;
   connectToVoice: (channel: ActiveVoiceChannel, token: string, url: string) => void;
-  disconnectVoice: () => void;
+  disconnectVoice: (reason?: string) => void;
 }
 
 export const useVoiceStore = create<VoiceState>((set, get) => ({
@@ -47,6 +49,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
   activeVoiceChannel: null,
   livekitToken: null,
   livekitUrl: null,
+  lastDisconnectReason: null,
 
   joinChannel: (channelId) => {
     set({ activeChannelId: channelId });
@@ -106,12 +109,14 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
       livekitToken: token,
       livekitUrl: url,
       activeChannelId: channel.id,
+      lastDisconnectReason: null,
     });
   },
 
-  disconnectVoice: () => {
+  disconnectVoice: (reason?: string) => {
     const state = get();
-    console.log("[Voice] Ses bağlantısı sonlandırılıyor:", state.activeVoiceChannel?.name);
+    const channelName = state.activeVoiceChannel?.name;
+    console.log("[Voice] Ses bağlantısı sonlandırılıyor:", channelName, "| Neden:", reason || "bilinmiyor");
     const userId = useAuthStore.getState().user?.id;
     if (state.activeVoiceChannel && userId) {
       getSocket()?.emit("voice:leave", { channelId: state.activeVoiceChannel.id, userId });
@@ -129,6 +134,7 @@ export const useVoiceStore = create<VoiceState>((set, get) => ({
       livekitUrl: null,
       activeChannelId: null,
       participants: newParticipants,
+      lastDisconnectReason: reason || (channelName ? `${channelName} — bağlantı kesildi` : null),
     });
   },
 }));

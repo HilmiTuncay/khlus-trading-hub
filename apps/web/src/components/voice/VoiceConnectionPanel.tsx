@@ -63,7 +63,7 @@ export function VoiceConnectionPanel() {
         )}
 
         <button
-          onClick={disconnectVoice}
+          onClick={() => disconnectVoice("Kullanici ayrildi")}
           title="Baglantiyi Kes"
           className="rounded-md bg-accent-red/20 p-2 text-accent-red hover:bg-accent-red/30 transition"
         >

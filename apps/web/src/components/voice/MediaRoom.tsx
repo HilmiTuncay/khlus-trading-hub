@@ -112,6 +112,7 @@ export function MediaRoom({
             getSocket()?.emit("voice:leave", { channelId, userId });
           }
           useVoiceStore.getState().leaveChannel();
+          // onDisconnect sadece UI temizligi yapar, asil disconnect layout tarafindan yonetilir
           onDisconnect();
         }}
         onConnected={() => {
@@ -410,7 +411,7 @@ export function RoomContent({
                       danger
                       onClick={() => {
                         if (document.fullscreenElement) document.exitFullscreen();
-                        useVoiceStore.getState().leaveChannel();
+                        useVoiceStore.getState().disconnectVoice("Kullanici ayrildi");
                         onDisconnect();
                       }}
                     />
@@ -528,7 +529,7 @@ export function RoomContent({
           label="Ayrıl"
           danger
           onClick={() => {
-            useVoiceStore.getState().leaveChannel();
+            useVoiceStore.getState().disconnectVoice("Kullanici ayrildi");
             onDisconnect();
           }}
         />

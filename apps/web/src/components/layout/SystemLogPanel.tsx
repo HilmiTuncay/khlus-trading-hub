@@ -34,7 +34,7 @@ export function SystemLogPanel() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const { servers, activeServer, activeChannel } = useServerStore();
-  const { isConnected: voiceConnected, activeVoiceChannel, channelUsers } = useVoiceStore();
+  const { isConnected: voiceConnected, activeVoiceChannel, channelUsers, lastDisconnectReason } = useVoiceStore();
   const { user } = useAuthStore();
 
   const addLog = useCallback((message: string, type: LogEntry["type"] = "info") => {
@@ -93,14 +93,15 @@ export function SystemLogPanel() {
     }
   }, [voiceConnected, activeVoiceChannel?.id, addLog]);
 
-  // Voice baglanti kesilmesi
+  // Voice baglanti kesilmesi + neden
   const prevVoiceRef = useRef(false);
   useEffect(() => {
     if (prevVoiceRef.current && !voiceConnected) {
-      addLog("Ses: bağlantı kesildi", "warn");
+      const reason = lastDisconnectReason;
+      addLog(reason ? `Ses: ${reason}` : "Ses: bağlantı kesildi", reason?.includes("basarisiz") || reason?.includes("hata") ? "error" : "warn");
     }
     prevVoiceRef.current = voiceConnected;
-  }, [voiceConnected, addLog]);
+  }, [voiceConnected, addLog, lastDisconnectReason]);
 
   const totalVoiceUsers = Object.values(channelUsers).reduce((sum, arr) => sum + arr.length, 0);
 
