@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
+import { checkPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 import logger from "../lib/logger";
 import { sanitizeText } from "../lib/sanitize";
 
@@ -69,6 +71,33 @@ eventRouter.post("/", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
+    // Etkinlik oluşturma izni kontrolü
+    const canManage = await checkPermission(req.user!.userId, data.serverId, Permissions.MANAGE_SERVER);
+    if (!canManage) {
+      return res.status(403).json({ error: "Etkinlik oluşturma yetkiniz yok" });
+    }
+
+    // channelId sunucuya ait mi doğrula
+    if (data.channelId) {
+      const channel = await prisma.channel.findUnique({ where: { id: data.channelId } });
+      if (!channel || channel.serverId !== data.serverId) {
+        return res.status(400).json({ error: "Geçersiz kanal" });
+      }
+    }
+
+    // Tarih doğrulaması
+    const startAt = new Date(data.startAt);
+    if (isNaN(startAt.getTime()) || startAt < new Date()) {
+      return res.status(400).json({ error: "Başlangıç tarihi gelecekte olmalı" });
+    }
+    let endAt: Date | null = null;
+    if (data.endAt) {
+      endAt = new Date(data.endAt);
+      if (isNaN(endAt.getTime()) || endAt < startAt) {
+        return res.status(400).json({ error: "Bitiş tarihi başlangıçtan sonra olmalı" });
+      }
+    }
+
     const event = await prisma.event.create({
       data: {
         serverId: data.serverId,
@@ -76,8 +105,8 @@ eventRouter.post("/", async (req: Request, res: Response) => {
         title: sanitizeText(data.title),
         description: data.description ? sanitizeText(data.description) : null,
         channelId: data.channelId || null,
-        startAt: new Date(data.startAt),
-        endAt: data.endAt ? new Date(data.endAt) : null,
+        startAt,
+        endAt,
       },
     });
 

@@ -4,6 +4,8 @@ import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
 import logger from "../lib/logger";
+import { checkChannelPermission } from "../utils/permissions";
+import { Permissions } from "@khlus/shared";
 
 export const reactionRouter = Router();
 reactionRouter.use(authenticate);
@@ -39,6 +41,16 @@ reactionRouter.put("/", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü: READ_MESSAGES ve ADD_REACTIONS
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
+    }
+    const hasReactPerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.ADD_REACTIONS);
+    if (!hasReactPerm) {
+      return res.status(403).json({ error: "Bu kanalda reaksiyon ekleme izniniz yok" });
     }
 
     // Toggle: varsa kaldır, yoksa ekle
@@ -103,7 +115,7 @@ reactionRouter.get("/:messageId", async (req: Request, res: Response) => {
     // Önce mesajı bul ve üyelik kontrolü yap
     const message = await prisma.message.findUnique({
       where: { id: req.params.messageId as string },
-      select: { channel: { select: { serverId: true } } },
+      select: { channelId: true, channel: { select: { serverId: true } } },
     });
 
     if (!message) {
@@ -121,6 +133,12 @@ reactionRouter.get("/:messageId", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
     }
 
     const reactions = await prisma.reaction.findMany({

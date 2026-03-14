@@ -129,6 +129,14 @@ messageRouter.post("/", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu kanala mesaj gönderme izniniz yok" });
     }
 
+    // Ek dosya varsa ATTACH_FILES izni kontrolü
+    if (data.attachments.length > 0) {
+      const hasAttachPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.ATTACH_FILES);
+      if (!hasAttachPerm) {
+        return res.status(403).json({ error: "Bu kanala dosya ekleme izniniz yok" });
+      }
+    }
+
     const message = await prisma.message.create({
       data: {
         channelId: data.channelId,
@@ -348,6 +356,12 @@ messageRouter.put("/:messageId/vote", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
     }
 
+    // Kanal izni kontrolü
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
+    }
+
     const metadata = message.metadata as any;
     if (!metadata?.options || optionIndex >= metadata.options.length) {
       return res.status(400).json({ error: "Geçersiz seçenek" });
@@ -393,14 +407,19 @@ messageRouter.delete("/:messageId", async (req: Request, res: Response) => {
   try {
     const message = await prisma.message.findUnique({
       where: { id: req.params.messageId },
+      include: { channel: { select: { serverId: true } } },
     });
 
     if (!message) {
       return res.status(404).json({ error: "Mesaj bulunamadı" });
     }
 
+    // Yazar değilse MANAGE_MESSAGES izni kontrol et (moderatör)
     if (message.authorId !== req.user!.userId) {
-      return res.status(403).json({ error: "Bu mesajı silme yetkiniz yok" });
+      const hasManagePerm = await checkChannelPermission(req.user!.userId, message.channel.serverId, message.channelId, Permissions.MANAGE_MESSAGES);
+      if (!hasManagePerm) {
+        return res.status(403).json({ error: "Bu mesajı silme yetkiniz yok" });
+      }
     }
 
     await prisma.message.delete({ where: { id: req.params.messageId } });

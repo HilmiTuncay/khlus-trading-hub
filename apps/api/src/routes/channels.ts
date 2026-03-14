@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
-import { checkPermission } from "../utils/permissions";
+import { checkPermission, checkChannelPermission } from "../utils/permissions";
 import { Permissions } from "@khlus/shared";
 import logger from "../lib/logger";
 import { sanitizeText } from "../lib/sanitize";
@@ -35,6 +35,14 @@ channelRouter.post("/", async (req: Request, res: Response) => {
 
     if (!canManage) {
       return res.status(403).json({ error: "Kanal oluşturma yetkiniz yok" });
+    }
+
+    // categoryId sunucuya ait mi doğrula
+    if (data.categoryId) {
+      const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+      if (!category || category.serverId !== data.serverId) {
+        return res.status(400).json({ error: "Geçersiz kategori" });
+      }
     }
 
     const channelCount = await prisma.channel.count({
@@ -86,6 +94,12 @@ channelRouter.get("/:channelId", async (req: Request, res: Response) => {
 
     if (!member) {
       return res.status(403).json({ error: "Bu sunucunun üyesi değilsiniz" });
+    }
+
+    // Kanal izni kontrolü
+    const hasReadPerm = await checkChannelPermission(req.user!.userId, channel.serverId, channel.id, Permissions.READ_MESSAGES);
+    if (!hasReadPerm) {
+      return res.status(403).json({ error: "Bu kanalı okuma izniniz yok" });
     }
 
     res.json({ channel });

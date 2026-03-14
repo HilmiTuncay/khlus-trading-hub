@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
 import { getIO } from "../socket";
@@ -8,6 +9,14 @@ import { sanitizeText } from "../lib/sanitize";
 
 export const dmRouter = Router();
 dmRouter.use(authenticate);
+
+// DM mesaj gönderme rate limit (dakikada 30 mesaj)
+const dmMessageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: "Çok hızlı mesaj gönderiyorsunuz. Lütfen biraz bekleyin." },
+  keyGenerator: (req: Request) => req.user?.userId || req.ip || "unknown",
+});
 
 // GET /api/dm/conversations - Kullanıcının tüm DM konuşmaları
 dmRouter.get("/conversations", async (req: Request, res: Response) => {
@@ -170,7 +179,7 @@ const sendDMSchema = z.object({
   content: z.string().min(1).max(4000),
 });
 
-dmRouter.post("/:conversationId/messages", async (req: Request, res: Response) => {
+dmRouter.post("/:conversationId/messages", dmMessageLimiter, async (req: Request, res: Response) => {
   try {
     const conversationId = req.params.conversationId as string;
     const { content } = sendDMSchema.parse(req.body);

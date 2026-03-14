@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { authenticate } from "../middleware/auth";
@@ -58,9 +59,15 @@ function clearLoginAttempts(email: string) {
   loginAttempts.delete(email);
 }
 
+// Refresh token replay koruması — kullanılmış token JTI'leri
+const usedRefreshTokens = new Set<string>();
+// Periyodik temizlik (1 saatte bir, 31 günden eski token'lar zaten expired)
+setInterval(() => { usedRefreshTokens.clear(); }, 24 * 60 * 60 * 1000);
+
 function generateTokens(userId: string, email: string) {
+  const jti = crypto.randomUUID();
   const token = jwt.sign({ userId, email }, env.JWT_SECRET, { expiresIn: "7d" });
-  const refreshToken = jwt.sign({ userId, email }, env.JWT_REFRESH_SECRET, {
+  const refreshToken = jwt.sign({ userId, email, jti }, env.JWT_REFRESH_SECRET, {
     expiresIn: "30d",
   });
   return { token, refreshToken };
@@ -71,14 +78,13 @@ authRouter.post("/register", async (req: Request, res: Response) => {
   try {
     const data = registerSchema.parse(req.body);
 
-    const existingEmail = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existingEmail) {
-      return res.status(400).json({ error: "Bu email adresi zaten kullanılıyor" });
-    }
-
-    const existingUsername = await prisma.user.findUnique({ where: { username: data.username } });
-    if (existingUsername) {
-      return res.status(400).json({ error: "Bu kullanıcı adı zaten kullanılıyor" });
+    // Enumeration koruması: email ve username için aynı hata mesajı
+    const [existingEmail, existingUsername] = await Promise.all([
+      prisma.user.findUnique({ where: { email: data.email } }),
+      prisma.user.findUnique({ where: { username: data.username } }),
+    ]);
+    if (existingEmail || existingUsername) {
+      return res.status(400).json({ error: "Bu bilgilerle kayıt oluşturulamıyor" });
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -193,7 +199,18 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
     const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
       userId: string;
       email: string;
+      jti?: string;
     };
+
+    // Token replay koruması: aynı token ikinci kez kullanılamaz
+    if (payload.jti) {
+      if (usedRefreshTokens.has(payload.jti)) {
+        logger.warn({ userId: payload.userId }, "Refresh token replay tespit edildi");
+        res.clearCookie("refreshToken");
+        return res.status(401).json({ error: "Token zaten kullanılmış. Lütfen tekrar giriş yapın." });
+      }
+      usedRefreshTokens.add(payload.jti);
+    }
 
     const tokens = generateTokens(payload.userId, payload.email);
 

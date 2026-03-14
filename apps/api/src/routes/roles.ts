@@ -222,6 +222,19 @@ roleRouter.put("/assign", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Rol yönetme yetkiniz yok" });
     }
 
+    // Rol hiyerarşisi kontrolü: işlem yapanın en yüksek rolü hedef rolden yüksek olmalı
+    const server = await prisma.server.findUnique({ where: { id: member.serverId }, select: { ownerId: true } });
+    if (server?.ownerId !== req.user!.userId) {
+      const actorMember = await prisma.member.findUnique({
+        where: { userId_serverId: { userId: req.user!.userId, serverId: member.serverId } },
+        include: { roles: { include: { role: true } } },
+      });
+      const actorMaxPosition = actorMember?.roles.reduce((max: number, mr: any) => Math.max(max, mr.role.position), 0) || 0;
+      if (actorMaxPosition <= role.position) {
+        return res.status(403).json({ error: "Bu rolü atamak için daha yüksek bir role sahip olmalısınız" });
+      }
+    }
+
     // Toggle: varsa kaldır, yoksa ekle
     const existing = await prisma.memberRole.findUnique({
       where: { memberId_roleId: { memberId, roleId } },

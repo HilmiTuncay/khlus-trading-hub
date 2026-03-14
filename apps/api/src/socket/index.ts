@@ -238,10 +238,12 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
         // Sunucu odasına katıl
         socket.join(`server:${serverId}`);
 
-        // Her kanal için aktif kullanıcıları gönder
+        // Her kanal için aktif kullanıcıları gönder (CONNECT izni olan kanallar)
         for (const ch of channels) {
           const users = voiceChannels.get(ch.id);
           if (users && users.size > 0) {
+            const hasConnectPerm = await checkChannelPermission(authenticatedUserId, serverId, ch.id, Permissions.CONNECT);
+            if (!hasConnectPerm) continue;
             socket.emit("voice:channel_users", {
               channelId: ch.id,
               users: Array.from(users.values()),
@@ -276,6 +278,9 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
           where: { userId_serverId: { userId: authenticatedUserId, serverId: channel.serverId } },
         });
         if (!member) return;
+        // Kanal izni kontrolü
+        const hasReadPerm = await checkChannelPermission(authenticatedUserId, channel.serverId, channelId, Permissions.READ_MESSAGES);
+        if (!hasReadPerm) return;
         socket.to(`channel:${channelId}`).emit("typing:start", {
           userId: authenticatedUserId,
           channelId,
@@ -291,6 +296,9 @@ export function initSocket(httpServer: HttpServer, corsOrigins: string[]) {
           where: { userId_serverId: { userId: authenticatedUserId, serverId: channel.serverId } },
         });
         if (!member) return;
+        // Kanal izni kontrolü
+        const hasReadPerm = await checkChannelPermission(authenticatedUserId, channel.serverId, channelId, Permissions.READ_MESSAGES);
+        if (!hasReadPerm) return;
         socket.to(`channel:${channelId}`).emit("typing:stop", {
           userId: authenticatedUserId,
           channelId,
